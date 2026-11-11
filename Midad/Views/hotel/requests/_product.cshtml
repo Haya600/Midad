@@ -1,7 +1,0 @@
-@* Source: resources/views/hotel/requests/_product.blade.php *@
-@{
-    SupplyRequest r = Get<SupplyRequest>("r");
-}
-@* Product cell: "Cotton bed linen <span>+1 more</span>" (UC1-10 line 838). *@
-@{ var n = r.Supplies.Count(); }
-@(r.Supplies.First()?.SupplyName)@if (n > 1) {<text> <span style="color:var(--muted);font-size:13px;">@(T("+:n more", new Dictionary<string, object?> { ["n"] = n - 1 }))</span></text>}
