@@ -1,0 +1,34 @@
+@* Source: resources/views/partials/bell.blade.php *@
+@{
+    string? shell = Get<string?>("shell");
+}
+@* Bell menu (client notes: notifications for important events). $shell = hotel|supplier.
+     Uses the account-menu toggle (data-md-acct) and its panel style; badge = unread count. *@
+@{
+var ready = Auth().Check() && Php.B(Notifier.Ready());
+var uid = Auth().Id();
+var notes = Php.B(ready) ? App.Db.Notifications.Where(x => x.UserId == uid).OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.NotificationId).Take(8).ToList() : new List<Midad.Models.Notification>();
+var unread = Php.B(ready) ? App.Db.Notifications.Count(x => x.UserId == uid && !x.IsRead) : 0;
+var hotel = shell == "hotel";
+}
+<div class="md-acct md-bell" data-md-acct role="button" tabindex="0" aria-haspopup="true" aria-label="@(T("Notifications"))@(Php.B(unread) ? " (" + unread + ")" : "")">
+  @if (Php.B(hotel)) {<text>
+  <i class="bi bi-bell" style="color:var(--muted);font-size:17px"></i>
+  </text>} else {<text>
+  <span class="bell"><i class="bi bi-bell"></i></span>
+  </text>}
+  @if (Php.B(unread)) {<text><span class="md-bell-n" style="background:@(Php.B(hotel) ? "var(--danger)" : "var(--dang)")">@(unread > 9 ? "9+" : unread)</span></text>}
+  <div class="md-acct-menu md-bell-menu">
+    <div class="md-bell-h"><b>@(T("Notifications"))</b>
+      @if (Php.B(unread)) {<text><form method="POST" action="@(Route("notifications.read-all"))" class="m-0">@Html.AntiForgeryToken()<button type="submit" class="md-bell-all">@(T("Mark all as read"))</button></form></text>}
+    </div>
+    @if (Php.Any(notes)) { foreach (var n in notes) {<text>
+      <a href="@(Route("notifications.open", n))" class="@Css(("md-bell-i", true), ("unread", ! n.IsRead))">
+        <span>@(Notifier.Text(n))</span>
+        <small>@(T(n.EventType)) · @(n.CreatedAt.DiffForHumans())</small>
+      </a>
+    </text>} } else {<text>
+      <div class="md-bell-empty">@(Php.B(ready) ? T("No notifications yet.") : T("Notifications are not set up yet."))</div>
+    </text>}
+  </div>
+</div>

@@ -1,0 +1,37 @@
+@* Source: resources/views/layouts/partials/scripts.blade.php *@
+<script src="@(Asset("js/md-nav.js"))" defer></script>
+@* Strings the page scripts write into the page, in the current language (§8.6): mdt(':n items', {n: 2}) *@
+@{ var mdJs = Php.Collect(new[] { "Item :n", ":n item", ":n items", " total", ":n day from today", ":n days from today", "When the goods must arrive", "Suppliers see this on the request", "High, Medium or Low", "None added yet", "Not set", ":n item added", ":n items added", "Saved", "Not saved", "On this device", "High", "Medium", "Low", ":n day late", ":n days late", ":n days · :date", "Calculated", "Meets the date", "SAR :amount", ":n days · by :date", ":n days · by :date (:late days late)", "Available", "Strong password", "pieces", "sets", "units", "boxes", "cartons", "litres", "kg", "Select a product", "Choose a category first", "Other (type the name)", "Customization: hotel logo" }).MapWithKeys( (k) => new Dictionary<string, object?> { [k] = T(k) })
+    .Put("months", Php.Collect(Php.Range(1, 12)).Map( (m) => Carbon.Create(2026, m, 1).TranslatedFormat("M")).All()); }
+<script>
+window.mdT = @Html.Raw(Php.JsonEncode(mdJs));
+function mdt(k, r) { var s = window.mdT[k] || k; for (var x in (r || {})) s = s.split(':' + x).join(r[x]); return s; }
+</script>
+<script>
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('[data-md-acct]');
+  document.querySelectorAll('.md-acct.open').forEach(function (m) { if (m !== a) m.classList.remove('open'); });
+  if (a && !e.target.closest('.md-acct-menu')) a.classList.toggle('open');
+  var eye = e.target.closest('[data-md-eye]');
+  if (eye) { var f = eye.parentNode.querySelector('input'), show = f.type === 'password'; f.type = show ? 'text' : 'password'; eye.firstElementChild.className = 'bi ' + (show ? 'bi-eye-slash' : 'bi-eye'); }
+  var open = e.target.closest('[data-md-open]');
+  if (open) { e.preventDefault(); mdModal(document.querySelector(open.getAttribute('data-md-open')), true); return; }
+  if (e.target.closest('[data-md-close]') || e.target.classList.contains('scrim')) { var m = e.target.closest('.md-modal'); if (m) mdModal(m, false); }
+  var row = e.target.closest('tr[data-href]');
+  if (row && !e.target.closest('a, button, form, input, select')) location.href = row.getAttribute('data-href');
+});
+function mdModal(m, show) {
+  if (!m) return;
+  m.hidden = !show;
+  document.body.classList.toggle('md-modal-open', !!document.querySelector('.md-modal:not([hidden])'));
+  if (show) { var f = m.querySelector('[autofocus], input:not([type=hidden]), button'); if (f) f.focus(); }
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') document.querySelectorAll('.md-modal:not([hidden])').forEach(function (m) { mdModal(m, false); });
+});
+document.addEventListener('DOMContentLoaded', function () {
+  var m = document.querySelector('.md-modal[data-md-autoshow]');
+  if (m) mdModal(m, true);
+});
+</script>
+@Stack("scripts")

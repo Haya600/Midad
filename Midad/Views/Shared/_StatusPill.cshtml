@@ -1,0 +1,23 @@
+@* Source: resources/views/components/status-pill.blade.php *@
+@* component props: icon, label, priority, shell, value *@
+@* Status / priority badge (blueprint §4.1).
+     <x-status-pill :value="$request->request_status" shell="hotel"/>          → <span class="pill p-info">Open</span>
+     <x-status-pill :value="$request->priority" shell="supplier" priority/>     → <span class="pl pl-dang">High priority</span>
+     Optional: label="Open for bidding" (other wording for the same status), icon="bi-check2". *@
+@{ Props(new Dictionary<string, object?> { ["0"] = "value", ["shell"] = "hotel", ["priority"] = false, ["label"] = null, ["icon"] = null }); dynamic value = ViewBag.value; dynamic shell = ViewBag.shell; dynamic priority = ViewBag.priority; dynamic label = ViewBag.label; dynamic icon = ViewBag.icon; }
+@{
+dynamic @class = null;
+var tone = priority
+        ? (new Dictionary<string, object?> { ["High"] = "dan", ["Medium"] = "warn", ["Low"] = "neu" }[value] ?? "neu")
+        : ((value) switch { "Open" or "Submitted" or "Pending" or "Processing" or "Created" or "Shipped" => "info", "Awarded" or "Accepted" or "Signed" or "Paid" or "Completed" or "Approved" or "Verified" or "Delivered" or "Active" => "ok", "Rejected" or "Failed" or "Refunded" or "Suspended" => "dan", "Pending Signatures" or "Partially Refunded" or "Unpaid" or "Pending Verification" => "warn", _ => "neu" });
+if (shell == "supplier")
+{
+@class = "pl pl-" + (tone == "dan" ? "dang" : (value == "Accepted" && ! priority ? "olive" : tone));
+}
+else
+{
+@class = "pill p-" + tone;
+}
+var text = label != null ? T(label) : (priority && shell == "supplier" ? T(":value priority", new Dictionary<string, object?> { ["value"] = T(value) }) : T(value));
+}
+<span @(attributes.Merge(new Dictionary<string, object?> { ["class"] = @class }))>@if (Php.B(icon)) {<text><i class="bi @(icon)"></i></text>}@(text)</span>

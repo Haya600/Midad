@@ -1,0 +1,45 @@
+@* Source: resources/views/auth/partials/register-js.blade.php *@
+@* PUB-08 live states: valid fields turn .fld-ok, the CR number shows "Available", the password
+     "Strong password" (.okmsg, lines 641-662); category chips switch .b-line ⇄ .b-olive. *@
+<script>
+(function () {
+  var form = document.querySelector('[data-register]');
+  if (!form) return;
+  function okMsg(field, text, show) {
+    var box = field.closest('.fgrp'), m = box.querySelector('.okmsg'), hint = box.querySelector('.hint');
+    if (show && !box.querySelector('.emsg')) {
+      if (!m) { m = document.createElement('div'); m.className = 'okmsg'; m.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>' + text; box.appendChild(m); }
+      if (hint) hint.style.display = 'none';
+    } else {
+      if (m) m.remove();
+      if (hint) hint.style.display = '';
+    }
+  }
+  function check(f) {
+    var valid = f.value !== '' && Php.B(f.checkValidity());
+    if (f.dataset.same) valid = valid && f.value === form.querySelector('[name="' + f.dataset.same + '"]').value;
+    if (f.hasAttribute('data-cr')) {
+      if (!valid) { f.classList.remove('fld-ok'); okMsg(f, '', false); return; }
+      fetch('@(Route("register.check-cr"))?cr=' + encodeURIComponent(f.value), {headers: {Accept: 'application/json'}})
+        .then(function (r) { return r.json(); })
+        .then(function (j) { f.classList.toggle('fld-ok', j.available); okMsg(f, mdt('Available'), j.available); });
+      return;
+    }
+    f.classList.toggle('fld-ok', valid && !f.classList.contains('fld-err'));
+    if (f.dataset.okMsg) okMsg(f, mdt(f.dataset.okMsg), valid);
+  }
+  form.querySelectorAll('[data-ok]').forEach(function (f) {
+    f.addEventListener('change', function () { check(f); });
+    f.addEventListener('blur', function () { check(f); });
+    f.addEventListener('input', function () { f.classList.remove('fld-err'); });
+  });
+  form.querySelectorAll('.md-chip input').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var l = cb.closest('.md-chip');
+      l.classList.toggle('b-olive', cb.checked);
+      l.classList.toggle('b-line', !cb.checked);
+      l.style.boxShadow = cb.checked ? 'none' : '';
+    });
+  });
+})();
+</script>

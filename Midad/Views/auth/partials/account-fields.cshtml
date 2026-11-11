@@ -1,0 +1,24 @@
+@* Source: resources/views/auth/partials/account-fields.blade.php *@
+@{
+    string? emailHint = Get<string?>("emailHint");
+    string? emailPh = Get<string?>("emailPh");
+    string? submit = Get<string?>("submit");
+}
+@* "Account login" block of PUB-07 / PUB-08 / PUB-09 (lines 600-607, 657-664, 705-711), plus the terms line and footer. *@
+        <div class="cd-t mb-4 mt-3" style="padding-top:26px;border-top:1px solid var(--line)">@(T("Account login"))</div>
+        <div class="row g-3">
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "email", ["label"] = "Email address", ["type"] = "email", ["placeholder"] = emailPh, ["hint"] = emailHint, ["required"] = true, ["maxlength"] = "150", ["autocomplete"] = "email", ["data-ok"] = true }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "phone", ["label"] = "Phone", ["type"] = "tel", ["pre"] = "+966", ["placeholder"] = $"{Php.E(T("5X XXX XXXX"))}", ["required"] = true, ["inputmode"] = "numeric", ["maxlength"] = "12", ["pattern"] = "^0?5[0-9]\s?[0-9]{3}\s?[0-9]{4}$", ["title"] = $"{Php.E(T("5X XXX XXXX"))}", ["autocomplete"] = "tel-national" }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "password", ["label"] = "Password", ["type"] = "password", ["placeholder"] = "••••••••", ["hint"] = "At least 8 characters, one number", ["required"] = true, ["minlength"] = "8", ["pattern"] = "^(?=.*[A-Za-z])(?=.*\d).{8,}$", ["title"] = $"{Php.E(T("At least 8 characters, one number"))}", ["autocomplete"] = "new-password", ["data-ok"] = true, ["data-ok-msg"] = "Strong password" }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "password_confirmation", ["label"] = "Confirm password", ["type"] = "password", ["placeholder"] = "••••••••", ["required"] = true, ["minlength"] = "8", ["autocomplete"] = "new-password", ["data-ok"] = true, ["data-same"] = "password" }))
+        </div>
+        @if (errors.Any() && Php.B(Old("terms")) && !errors.Has("terms")) {<text>
+        <input type="hidden" name="terms" value="1">
+        </text>} else {<text>
+        <label style="font-size:14px;color:var(--ink-2);margin-top:8px;display:block"><input type="checkbox" name="terms" value="1" class="md-cb" required @Html.Raw((Old("terms")) ? "checked" : "")><i class="bi bi-square me-2" style="color:var(--line-2)"></i><i class="bi bi-check-square-fill me-2" style="color:var(--olive)"></i>@(T("I agree to the")) <span style="color:var(--olive);font-weight:600">@(T("Terms of Service"))</span> @(T("and")) <span style="color:var(--olive);font-weight:600">@(T("Privacy Policy"))</span></label>
+        @if (errors.Has("terms")) { var message = errors.First("terms"); <text><div class="emsg"><i class="bi bi-exclamation-circle me-1"></i>@(T(message))</div></text>}
+        </text>}
+        <div class="d-flex justify-content-between align-items-center mt-4 pt-4" style="border-top:1px solid var(--line)">
+          <a class="btn b-ghost" href="@(Route("register"))"><i class="bi bi-arrow-left"></i>@(T("Back"))</a>
+          <button class="btn b-olive btn-lg" type="submit">@(T(submit))</button>
+        </div>

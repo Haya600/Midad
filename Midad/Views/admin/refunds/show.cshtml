@@ -1,0 +1,83 @@
+@* Source: resources/views/admin/refunds/show.blade.php *@
+@{
+    RefundRequest refund = Get<RefundRequest>("refund");
+}
+@* Admin: Refund verification (§7 - UC1-08 detail + evidence image + Approve (btn-accent) / Reject (btn-danger) modal, UC1-07). *@
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Refund RF-" + refund.RefundId; }
+@section crumb {<text><a href="@(Route("admin.refunds.index"))" class="md-link" style="color:inherit">@(T("Refund Requests"))</a> <span style="color:var(--faint)">/</span> <b>RF-@(refund.RefundId)</b></text>}
+@{ var order = refund.Order; }
+@{ var inv = order.Invoice; }
+@{ var bid = order.Contract.Bid; }
+@* @section('content') = the Razor body *@
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-1"><h1>RF-@(refund.RefundId)</h1>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = refund.RefundStatus }))</div>
+            <p>@(refund.Hotel.HotelName) · @(T("requested :date", new Dictionary<string, object?> { ["date"] = refund.RequestedAt.TranslatedFormat("j M Y, H:i") })) · @(T("order :no", new Dictionary<string, object?> { ["no"] = order.OrderNo }))</p>
+          </div>
+          @if (Can("verify", refund)) {<text>
+          <div class="d-flex gap-2">
+            <button class="btn btn-white" type="button" style="color:var(--danger)" data-md-open="#rejectRefund"><i class="bi bi-x-lg me-2"></i>@(T("Reject"))</button>
+            <button class="btn btn-accent" type="button" data-md-open="#approveRefund"><i class="bi bi-check2 me-2"></i>@(T("Approve"))</button>
+          </div>
+          </text>}
+        </div>
+        <div class="row g-4">
+          <div class="col-12 col-lg-8">
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Reason given by the hotel"))</div></div>
+              <div class="card-p" style="font-size:14px;white-space:pre-line">@(refund.Reason)</div>
+            </div>
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Evidence photo"))</div>@if (Php.B(refund.EvidenceSrc)) {<text><a class="btn btn-ghost btn-sm" href="@(refund.EvidenceSrc)" target="_blank" rel="noopener">@(T("Open full size"))</a></text>}</div>
+              <div class="card-p">@if (Php.B(refund.EvidenceSrc)) {<text><img src="@(refund.EvidenceSrc)" alt="Evidence for refund RF-@(refund.RefundId)" style="width:100%;max-width:560px;height:auto;border-radius:8px;border:1px solid var(--border)"></text>} else {<text><span style="color:var(--muted)">@(T("No photo."))</span></text>}</div>
+            </div>
+            <div class="card-m">
+              <div class="card-h"><div class="card-t">@(T("Items ordered"))</div><span style="font-size:13px;color:var(--muted)">@(bid.Request.ItemsSummary())</span></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>#</th><th>@(T("Product"))</th><th class="text-end">@(T("Quantity"))</th></tr></thead>
+                <tbody>@foreach (var (s, loop) in Php.Loop(bid.Request.Supplies)) {<text><tr><td class="num" style="color:var(--muted)">@(loop.Iteration)</td><td style="font-weight:500">@(s.SupplyName)</td><td class="text-end num">@(Php.NumberFormat(s.Quantity)) @(s.UnitOfMeasure)</td></tr></text>}</tbody>
+              </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="card-m card-p mb-3">
+              <div class="card-t mb-3">@(T("Refund details"))</div>
+              <dl class="kv mb-0">
+                <dt>@(T("Amount requested"))</dt><dd class="num" style="font-size:18px;font-weight:700">@(T("SAR")) @(Php.NumberFormat((decimal) refund.RequestedAmount, 2))</dd>
+                <dt>@(T("Invoice"))</dt><dd class="num">@(inv?.InvoiceNo) · @(T("SAR")) @(Php.NumberFormat((decimal) inv?.TotalAmount, 2)) @await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = inv?.InvoiceStatus ?? "Unpaid", ["class"] = "ms-1" }))</dd>
+                <dt>@(T("Supplier"))</dt><dd>@(bid.Supplier.CompanyName)</dd>
+                <dt>@(T("Order status"))</dt><dd>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = order.OrderStatus }))</dd>
+                <dt>@(T("Delivered"))</dt><dd class="num">@(order.ActualDeliveryDate?.TranslatedFormat("d M Y") ?? "-")</dd>
+                <dt>@(T("Verified"))</dt><dd class="num" style="margin-bottom:0">@if (Php.B(refund.VerifiedAt)) {<text>@(refund.VerifiedAt.TranslatedFormat("j M Y, H:i")) · @(refund.Admin?.FullName)</text>} else {<text><span style="color:var(--faint);font-weight:400">@(T("Not yet"))</span></text>}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+@* @endsection *@
+@{ Push("modals", @<text>
+@if (Can("verify", refund)) {<text>
+  @{ var rows = new[] { new[] { "Hotel", refund.Hotel.HotelName }, new[] { "Order", order.OrderNo }, new[] { "Amount", T("SAR") + " " + Php.NumberFormat((decimal) refund.RequestedAmount, 2) } }; }
+  @await Html.PartialAsync("~/Views/hotel/partials/confirm.cshtml", With(new Dictionary<string, object?> { ["id"] = "approveRefund", ["title"] = "Approve this refund?", ["text"] = "The amount is returned to the card used for the payment, and the invoice is marked as refunded.", ["rows"] = rows, ["body"] = "<input type=\"hidden\" name=\"decision\" value=\"Approved\">", ["action"] = Route("admin.refunds.decide", refund), ["button"] = "Approve refund", ["btnClass"] = "btn-accent", ["keep"] = "Cancel" }))
+<div class="md-modal" id="rejectRefund" hidden role="dialog" aria-modal="true" aria-labelledby="rejectRefundT" @Html.Raw((errors.Has("note")) ? $" data-md-autoshow " : "")>
+      <div class="scrim">
+        <form class="mdl" method="POST" action="@(Route("admin.refunds.decide", refund))">
+          @Html.AntiForgeryToken()
+          <input type="hidden" name="decision" value="Rejected">
+          <div class="mdl-h"><div class="mdl-t" id="rejectRefundT">@(T("Reject this refund?"))</div></div>
+          <div class="mdl-b">
+            <p style="margin:0 0 16px;">@(T("The hotel is told by email, with the reason below."))</p>
+            @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["name"] = "note", ["label"] = "Reason for the hotel", ["type"] = "textarea", ["rows"] = "3", ["placeholder"] = $"{Php.E(T("e.g. The photo does not show damage to the delivered goods."))}", ["required"] = true, ["maxlength"] = "500" }))
+          </div>
+          <div class="mdl-f">
+            <button class="btn btn-white" type="button" data-md-close>@(T("Cancel"))</button>
+            <button class="btn btn-danger" type="submit">@(T("Reject refund"))</button>
+          </div>
+        </form>
+      </div>
+</div>
+</text>}
+</text>); }

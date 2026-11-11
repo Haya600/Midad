@@ -1,0 +1,61 @@
+@* Source: resources/views/hotel/requests/index.blade.php *@
+@{
+    int awaiting = Get<int>("awaiting");
+    int? newId = Get<int?>("newId");
+    bool oldest = Get<bool>("oldest");
+    Paginator<SupplyRequest> requests = Get<Paginator<SupplyRequest>>("requests");
+    int total = Get<int>("total");
+}
+@* UC1-02 Supply requests (lines 238-267) · UC1-03 empty state (lines 296-307) · UC1-10 new row .row-new (lines 822-858). *@
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Supply Requests"; }
+@section crumb {<text><b>@(T("Supply Requests"))</b></text>}
+@* @section('content') = the Razor body *@
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+  @if (total == 0) {<text>
+        <div class="ph"><div><h1>@(T("Supply Requests"))</h1><p>@(T("No requests yet"))</p></div></div>
+        <div class="empty">
+          <i class="bi bi-inbox" style="font-size:42px;color:var(--faint)"></i>
+          <div style="font-size:20px;font-weight:500;margin-top:16px;">@(T("No supply requests yet"))</div>
+          <div style="font-size:14px;color:var(--muted);margin-top:7px;max-width:440px;margin-left:auto;margin-right:auto;">
+            @(T("Create your first request and every active supplier on Midad can start bidding on it. You pick the winning bid."))
+          </div>
+          <a class="btn btn-primary btn-lg mt-4" href="@(Route("hotel.requests.create"))"><i class="bi bi-plus-lg me-2"></i>@(T("New supply request"))</a>
+        </div>
+  </text>} else {<text>
+        <div class="ph">
+          <div><h1>@(T("Supply Requests"))</h1><p>@(T(total == 1 ? ":n request" : ":n requests", new Dictionary<string, object?> { ["n"] = total })) · @(T(awaiting == 1 ? ":n bid awaiting your review" : ":n bids awaiting your review", new Dictionary<string, object?> { ["n"] = awaiting }))</p></div>
+          <a class="btn btn-primary btn-lg" href="@(Route("hotel.requests.create"))"><i class="bi bi-plus-lg me-2"></i>@(T("New supply request"))</a>
+        </div>
+
+        <form class="bar" method="GET" action="@(Route("hotel.requests.index"))">
+          <label class="fld d-flex align-items-center gap-2 m-0" style="max-width:320px;"><i class="bi bi-search" style="color:var(--muted)"></i><input type="search" name="q" value="@(Req("q"))" placeholder="@(T("Search requests"))" maxlength="120" class="md-bare" aria-label="@(T("Search requests"))"></label>
+          <div class="md-ico" style="max-width:170px;"><select name="status" class="fld" onchange="this.form.submit()" aria-label="@(T("Status"))">
+            <option value="">@(T("All statuses"))</option>
+            @foreach (var s in new[] { "Draft", "Open", "Awarded", "Closed", "Cancelled" }) {<text><option value="@(s)" @Html.Raw((Req("status") == s) ? "selected" : "")>@(T(s))</option></text>}
+          </select><i class="md-ico-i bi bi-chevron-down" style="color:var(--muted)"></i></div>
+          <div class="md-ico" style="max-width:170px;"><select name="priority" class="fld" onchange="this.form.submit()" aria-label="@(T("Priority"))">
+            <option value="">@(T("All priorities"))</option>
+            @foreach (var p in Config("midad.priorities")) {<text><option value="@(p)" @Html.Raw((Req("priority") == p) ? "selected" : "")>@(T(p))</option></text>}
+          </select><i class="md-ico-i bi bi-chevron-down" style="color:var(--muted)"></i></div>
+          <input type="hidden" name="sort" value="@(Php.B(oldest) ? "oldest" : "")">
+          <div class="ms-auto"><a class="btn btn-white btn-sm" href="@(Req().FullUrlWithQuery(new Dictionary<string, object?> { ["sort"] = oldest ? null : "oldest", ["page"] = null }))"><i class="bi bi-arrow-down-up me-1"></i>@(T(oldest ? "Oldest first" : "Newest first"))</a></div>
+        </form>
+
+        <div class="card-m">
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Request"))</th><th>@(T("Product"))</th><th class="text-end">@(T("Qty"))</th><th>@(T("Needed by"))</th><th>@(T("Priority"))</th><th class="text-end">@(T("Bids"))</th><th>@(T("Status"))</th><th></th></tr></thead>
+            <tbody>
+              @if (Php.Any(requests)) { foreach (var r in requests) {<text>
+              <tr class="@Css(("row-new", r.RequestId == newId))" data-href="@(Route("hotel.requests.show", r))"><td class="num" style="font-weight:500">@(r.Code)</td><td>@await Html.PartialAsync("~/Views/hotel/requests/_product.cshtml", With(new Dictionary<string, object?> { ["r"] = r }))</td><td class="text-end num">@(r.QtyShort())</td><td class="num">@(r.RequiredDeliveryDate.TranslatedFormat("d M Y"))</td><td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = r.Priority, ["priority"] = true }))</td><td class="text-end num">@(r.Bids.Count)</td><td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = r.RequestStatus }))</td><td class="text-end"><a href="@(Route("hotel.requests.show", r))" aria-label="Open @(r.Code)"><i class="bi bi-chevron-right" style="color:var(--faint)"></i></a></td></tr>
+              </text>} } else {<text>
+              <tr><td colspan="8" style="color:var(--muted)">@(T("No requests match these filters."))</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_PgHotel.cshtml", With(new Dictionary<string, object?> { ["p"] = requests, ["noun"] = "requests" }))
+  </text>}
+@* @endsection *@

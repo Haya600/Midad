@@ -1,0 +1,13 @@
+@* Source: resources/views/layouts/partials/side-admin.blade.php *@
+@{
+    string? icon = Get<string?>("icon");
+    string? label = Get<string?>("label");
+    dynamic match = ViewBag.match;
+    string? md_active = Get<string?>("md_active");
+    string? route = Get<string?>("route");
+}
+@* Admin sidebar - blueprint §7: Dashboard · Hotels · Suppliers · Supply Requests · Bids · Refund Requests · Reports · My Account.
+     Same .side-i markup as the hotel sidebar; icons reuse the hotel ones where the item matches. *@
+@foreach (var $route, $match, $icon, $label] in new[] { new[] { "admin.dashboard", "admin.dashboard", "bi-grid", "Dashboard" }, new[] { "admin.hotels.index", "admin.hotels.*", "bi-building", "Hotels" }, new[] { "admin.suppliers.index", "admin.suppliers.*", "bi-truck", "Suppliers" }, new[] { "admin.requests.index", "admin.requests.*", "bi-file-earmark-text", "Supply Requests" }, new[] { "admin.bids.index", "admin.bids.*", "bi-hammer", "Bids" }, new[] { "admin.refunds.index", "admin.refunds.*", "bi-arrow-counterclockwise", "Refund Requests" }, new[] { "admin.reports.requests", "admin.reports.*", "bi-bar-chart", "Reports" }, new[] { "admin.account.edit", "admin.account.*", "bi-person", "My Account" } }) {<text>
+      <a href="@(Shell.Url(route))" class="@Css(("side-i text-decoration-none", true), ("on", Req().RouteIs(match) || (md_active ?? null) == route))"><i class="bi @(icon)"></i>@(T(label))</a>
+</text>}

@@ -1,0 +1,146 @@
+@* Source: resources/views/hotel/orders/show.blade.php *@
+@{
+    PurchaseOrder order = Get<PurchaseOrder>("order");
+}
+@* Hotel: Order detail (§7 - UC1-08 layout): confirm receipt, rate the supplier (UC1-07 modal, 5 stars), request a refund. *@
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = order.OrderNo; }
+@section crumb {<text><a href="@(Route("hotel.orders.index"))" class="md-link" style="color:inherit">@(T("Orders"))</a> <span style="color:var(--faint)">/</span> <b>@(order.OrderNo)</b></text>}
+@{
+var c = order.Contract;
+var bid = c.Bid;
+var sr = bid.Request;
+var inv = order.Invoice;
+var steps = new[] { "Created", "Processing", "Shipped", "Delivered", "Completed" };
+var at = Php.ArraySearch(order.OrderStatus, steps, true);
+}
+@* @section('content') = the Razor body *@
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-1 flex-wrap"><h1>@(order.OrderNo)</h1>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = order.OrderStatus }))</div>
+            <p>@(T("Created :date", new Dictionary<string, object?> { ["date"] = order.CreatedAt.TranslatedFormat("j M Y, H:i") })) · @(sr.Code) · @(bid.Supplier.CompanyName)</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            @if (Can("refund", order)) {<text>
+            @if (Php.B(inv) && inv.RefundableAmount() > 0) {<text><a class="btn btn-white" href="@(Route("hotel.refunds.create", order))"><i class="bi bi-arrow-counterclockwise me-2"></i>@(T("Request refund"))</a></text>}
+            </text>}
+            @if (Can("rate", order)) {<text>
+            <button class="btn btn-accent" type="button" data-md-open="#rateSupplier"><i class="bi bi-star me-2"></i>@(T("Rate supplier"))</button>
+            </text>}
+            @if (Can("confirm", order)) {<text>
+            <button class="btn btn-primary" type="button" data-md-open="#confirmReceipt"><i class="bi bi-check2-circle me-2"></i>@(T("Confirm receipt"))</button>
+            </text>}
+          </div>
+        </div>
+
+        <div class="tabs">
+          @foreach (var ((i, s), loop) in Php.Loop(Php.Pairs(steps))) {<text>
+          <div class="@Css(("tab", true), ("on", order.OrderStatus == s))" style="@(at != false && i < at ? "color:var(--ok)" : "")">@if (at != false && i < at) {<text><i class="bi bi-check2 me-1"></i></text>}@(T(s))</div>
+          </text>}
+        </div>
+
+        <div class="row g-4">
+          <div class="col-12 col-lg-8">
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Items ordered"))</div><span style="font-size:13px;color:var(--muted)">@(sr.ItemsSummary())</span></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>#</th><th>@(T("Product"))</th><th>@(T("Category"))</th><th class="text-end">@(T("Quantity"))</th></tr></thead>
+                <tbody>
+                  @foreach (var (s, loop) in Php.Loop(sr.Supplies)) {<text>
+                  <tr><td class="num" style="color:var(--muted)">@(loop.Iteration)</td><td style="font-weight:500">@(s.SupplyName)</td><td>@(s.Category)</td><td class="text-end num">@(Php.NumberFormat(s.Quantity)) @(s.UnitOfMeasure)</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+              </div>
+            </div>
+            @if (order.RefundRequests.IsNotEmpty()) {<text>
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Refund requests"))</div></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>@(T("Requested"))</th><th class="text-end">@(T("Amount"))</th><th>@(T("Status"))</th><th></th></tr></thead>
+                <tbody>
+                  @foreach (var (r, loop) in Php.Loop(order.RefundRequests)) {<text>
+                  <tr data-href="@(Route("hotel.refunds.show", r))"><td class="num">@(r.RequestedAt.TranslatedFormat("d M Y"))</td><td class="text-end num">@(T("SAR")) @(Php.NumberFormat((decimal) r.RequestedAmount, 2))</td><td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = r.RefundStatus }))</td><td class="text-end"><i class="bi bi-chevron-right" style="color:var(--faint)"></i></td></tr>
+                  </text>}
+                </tbody>
+              </table>
+              </div>
+            </div>
+            </text>}
+            @if (Php.B(order.Rating)) {<text>
+            <div class="card-m card-p">
+              <div class="card-t mb-2">@(T("Your rating"))</div>
+              <div style="color:var(--warn);font-size:18px">@for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= order.Rating.StarRating ? "bi-star-fill" : "bi-star")"></i></text>}</div>
+              @if (Php.B(order.Rating.ReviewComment)) {<text><p style="font-size:14px;color:var(--ink-2);margin:10px 0 0">@(order.Rating.ReviewComment)</p></text>}
+              <div class="help">@(T("Rated :date", new Dictionary<string, object?> { ["date"] = order.Rating.CreatedAt.TranslatedFormat("j M Y") }))</div>
+            </div>
+            </text>}
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="card-m card-p mb-3">
+              <div class="card-t mb-3">@(T("Order details"))</div>
+              <dl class="kv mb-0">
+                <dt>@(T("Supplier"))</dt><dd>@(bid.Supplier.CompanyName)</dd>
+                <dt>@(T("Contract"))</dt><dd class="num"><a href="@(Route("hotel.contracts.show", c))" class="md-link" style="color:var(--primary-dark)">@(c.ContractNo)</a></dd>
+                <dt>@(T("Expected delivery"))</dt><dd class="num">@(order.ExpectedDeliveryDate.TranslatedFormat("d M Y"))</dd>
+                <dt>@(T("Delivered"))</dt><dd class="num" style="margin-bottom:0">@(order.ActualDeliveryDate?.TranslatedFormat("d M Y") ?? "Not yet")</dd>
+              </dl>
+            </div>
+            @if (Php.B(inv)) {<text>
+            <div class="card-m card-p">
+              <div class="card-t mb-3">@(T("Invoice"))</div>
+              <dl class="kv mb-3">
+                <dt>@(T("Invoice"))</dt><dd class="num">@(inv.InvoiceNo) @await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = inv.InvoiceStatus, ["class"] = "ms-1" }))</dd>
+                <dt>@(T("Total incl. VAT"))</dt><dd class="num" style="margin-bottom:0">@(T("SAR")) @(Php.NumberFormat((decimal) inv.TotalAmount, 2))</dd>
+              </dl>
+              <a class="btn @(inv.InvoiceStatus == "Unpaid" ? "btn-primary" : "btn-white") btn-sm" href="@(Route("hotel.invoices.show", inv))">@(T(inv.InvoiceStatus == "Unpaid" ? "Pay invoice" : "Open invoice"))</a>
+            </div>
+            </text>}
+          </div>
+        </div>
+@* @endsection *@
+
+@{ Push("modals", @<text>
+  @if (Can("confirm", order)) {<text>
+  @await Html.PartialAsync("~/Views/hotel/partials/confirm.cshtml", With(new Dictionary<string, object?> { ["id"] = "confirmReceipt", ["title"] = "Confirm you received this order?", ["text"] = "The order is marked Completed and you can rate the supplier. If anything arrived damaged you can still request a refund afterwards.", ["rows"] = new[] { new[] { "Order", order.OrderNo }, new[] { "Supplier", bid.Supplier.CompanyName }, new[] { "Delivered", order.ActualDeliveryDate?.TranslatedFormat("d M Y") ?? "-" } }, ["action"] = Route("hotel.orders.confirm", order), ["button"] = "Confirm receipt", ["btnClass"] = "btn-primary", ["keep"] = "Not yet" }))
+  </text>}
+  @if (Can("rate", order)) {<text>
+<div class="md-modal" id="rateSupplier" hidden role="dialog" aria-modal="true" aria-labelledby="rateSupplierT" @Html.Raw((Php.B(errors.HasAny(new[] { "star_rating", "review_comment" }))) ? $" data-md-autoshow " : "")>
+      <div class="scrim">
+        <form class="mdl" method="POST" action="@(Route("hotel.orders.rate", order))">
+          @Html.AntiForgeryToken()
+          <div class="mdl-h"><div class="mdl-t" id="rateSupplierT">@(T("Rate :name", new Dictionary<string, object?> { ["name"] = bid.Supplier.CompanyName }))</div></div>
+          <div class="mdl-b">
+            <p style="margin:0 0 16px;">@(T("How did the supplier do on :no? Your rating appears on the supplier's profile and every bid they place.", new Dictionary<string, object?> { ["no"] = order.OrderNo }))</p>
+            <label class="lbl">@(T("Rating")) <span class="req">*</span></label>
+            <div class="d-flex gap-2 mb-1" role="radiogroup" aria-label="@(T("Rating"))" data-stars>
+              @for (var i = 1; i <= 5; i++) {<text>
+              <label style="cursor:pointer;font-size:30px;line-height:1;color:var(--warn)"><input type="radio" name="star_rating" value="@(i)" class="md-hide" required @Html.Raw(((int) Old("star_rating") == i) ? "checked" : "")><i class="bi @((int) Old("star_rating") >= i ? "bi-star-fill" : "bi-star")" aria-label="@(i) @(i == 1 ? T("star") : T("stars"))"></i></label>
+              </text>}
+            </div>
+            @if (errors.Has("star_rating")) { var message = errors.First("star_rating"); <text><div class="err mb-2"><i class="bi bi-exclamation-circle me-1"></i>@(T(message))</div></text>}
+            @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "mt-3", ["name"] = "review_comment", ["label"] = "Comment", ["type"] = "textarea", ["rows"] = "3", ["placeholder"] = $"{Php.E(T("Quality, packaging, delivery time…"))}", ["maxlength"] = "1000" }))
+          </div>
+          <div class="mdl-f">
+            <button class="btn btn-white" type="button" data-md-close>@(T("Not now"))</button>
+            <button class="btn btn-accent" type="submit"><i class="bi bi-star-fill me-2"></i>@(T("Submit rating"))</button>
+          </div>
+        </form>
+      </div>
+</div>
+  </text>}
+</text>); }
+
+@{ Push("scripts", @<text>
+<script>
+document.querySelectorAll('[data-stars]').forEach(function (g) {
+  g.addEventListener('change', function (e) {
+    var v = +e.target.value;
+    g.querySelectorAll('i').forEach(function (i, k) { i.className = 'bi ' + (k < v ? 'bi-star-fill' : 'bi-star'); });
+  });
+});
+</script>
+</text>); }

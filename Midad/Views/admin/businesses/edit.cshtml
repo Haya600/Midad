@@ -1,0 +1,63 @@
+@* Source: resources/views/admin/businesses/edit.blade.php *@
+@{
+    Dictionary<string, object> activity = Get<Dictionary<string, object>>("activity");
+    string? kind = Get<string?>("kind");
+    string? phone = Get<string?>("phone");
+    dynamic profile = ViewBag.profile;
+    UserAccount user = Get<UserAccount>("user");
+}
+@* Admin: Hotel / Supplier detail + edit (§7 - UC1-08 layout, PUB-07/08 fields inside .card-m .card-p, plus the two status fields). *@
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{
+var title = kind == "hotels" ? "Hotels" : "Suppliers";
+var name = profile.HotelName ?? profile.CompanyName;
+var n = Php.Count(Php.ArrayDiff(errors.Keys(), new[] { "phone_local" }));
+}
+@{ ViewData["title"] = name; }
+@section crumb {<text><a href="@(Route($"admin.{kind}.index"))" class="md-link" style="color:inherit">@(T(title))</a> <span style="color:var(--faint)">/</span> <b>@(name)</b></text>}
+@* @section('content') = the Razor body *@
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-1 flex-wrap"><h1>@(name)</h1>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = profile.ProfileStatus }))@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = user.AccountStatus }))</div>
+            <p>@(T(kind == "hotels" ? "Hotel" : "Supplier")) · @(T(profile.City)) · @(T("registered :date", new Dictionary<string, object?> { ["date"] = user.CreatedAt.TranslatedFormat("j M Y") }))</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            @if (profile.ProfileStatus != "Verified") {<text>
+            <form method="POST" action="@(Route($"admin.{kind}.verify", profile.GetKey()))">@Html.AntiForgeryToken()<button class="btn btn-accent" type="submit"><i class="bi bi-patch-check me-2"></i>@(T("Verify"))</button></form>
+            </text>}
+            @if (profile.ProfileStatus == "Pending") {<text>
+            <form method="POST" action="@(Route($"admin.{kind}.verify", profile.GetKey()))">@Html.AntiForgeryToken()<input type="hidden" name="decision" value="Rejected"><button class="btn btn-white" type="submit" style="color:var(--danger)">@(T("Reject"))</button></form>
+            </text>}
+            <button class="btn btn-white" type="button" style="color:var(--danger)" data-md-open="#deleteBusiness"><i class="bi bi-trash me-2"></i>@(T("Delete"))</button>
+          </div>
+        </div>
+        @if (Php.B(n)) {<text>
+        <div class="al al-dan mb-4"><i class="bi bi-exclamation-triangle-fill"></i><div><div class="al-t">@(T("The changes could not be saved"))</div><div class="al-b">@(MidadRequest.Attention(n, "save again. Everything you entered has been kept."))</div></div></div>
+        </text>}
+        <div class="row g-4">
+          <div class="col-12 col-lg-8">
+            <form method="POST" action="@(Route($"admin.{kind}.update", profile.GetKey()))">
+              @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT">
+              <div class="card-m card-p mb-3">
+                @await Html.PartialAsync("~/Views/Shared/_ProfileFields.cshtml", With(new Dictionary<string, object?> { ["shell"] = "hotel", ["kind"] = kind == "hotels" ? "hotel" : "supplier", ["profile"] = profile, ["user"] = user, ["phone"] = phone, ["admin"] = true }))
+              </div>
+              <div class="foot" style="margin-top:0;border-top:0;padding-top:0">
+                <a class="btn btn-ghost" href="@(Route($"admin.{kind}.index"))"><i class="bi bi-arrow-left me-2"></i>@(T("Back"))</a>
+                <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">@(T("Save changes"))</button></div>
+              </div>
+            </form>
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="card-m card-p">
+              <div class="card-t mb-3">@(T("Activity"))</div>
+              <dl class="kv mb-0">
+                @foreach (var ((k, v), loop) in Php.Loop(Php.Pairs(activity))) {<text><dt>@(T(k))</dt><dd class="num" @Html.Raw((Php.B(loop.Last)) ? $" style=\"margin-bottom:0\" " : "")>@(v)</dd></text>}
+              </dl>
+            </div>
+          </div>
+        </div>
+@* @endsection *@
+@{ Push("modals", @<text>
+  @await Html.PartialAsync("~/Views/hotel/partials/confirm.cshtml", With(new Dictionary<string, object?> { ["id"] = "deleteBusiness", ["title"] = T("Delete :name?", new Dictionary<string, object?> { ["name"] = name }), ["text"] = kind == "hotels" ? "The business and its login are removed. A business with supply requests on record cannot be deleted. Set its account to Suspended instead." : "The business and its login are removed. A business with bids on record cannot be deleted. Set its account to Suspended instead.", ["action"] = Route($"admin.{kind}.destroy", profile.GetKey()), ["method"] = "DELETE", ["button"] = "Delete", ["btnClass"] = "btn-danger", ["keep"] = "Keep" }))
+</text>); }

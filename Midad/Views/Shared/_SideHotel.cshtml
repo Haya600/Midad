@@ -1,0 +1,12 @@
+@* Source: resources/views/layouts/partials/side-hotel.blade.php *@
+@{
+    string? icon = Get<string?>("icon");
+    string? label = Get<string?>("label");
+    dynamic match = ViewBag.match;
+    string? md_active = Get<string?>("md_active");
+    string? route = Get<string?>("route");
+}
+@* Hotel sidebar - exact order and icons from UI/02 lines 165-173; <div class="side-i"> rendered as <a>. *@
+@foreach (var $route, $match, $icon, $label] in new[] { new[] { "hotel.dashboard", "hotel.dashboard", "bi-grid", "Dashboard" }, new[] { "hotel.requests.index", "hotel.requests.*", "bi-file-earmark-text", "Supply Requests" }, new[] { "hotel.bids.index", "hotel.bids.*", "bi-hammer", "Bids" }, new[] { "hotel.contracts.index", "hotel.contracts.*", "bi-file-earmark-check", "Contracts" }, new[] { "hotel.orders.index", "hotel.orders.*", "bi-box-seam", "Orders" }, new[] { "hotel.invoices.index", "hotel.invoices.*", "bi-receipt", "Invoices" }, new[] { "hotel.refunds.index", "hotel.refunds.*", "bi-arrow-counterclockwise", "Refunds" }, new[] { "hotel.reports.ratings", "hotel.reports.*", "bi-star", "Supplier Ratings" }, new[] { "hotel.profile.edit", "hotel.profile.*", "bi-building", "Hotel Profile" } }) {<text>
+      <a href="@(Shell.Url(route))" class="@Css(("side-i text-decoration-none", true), ("on", Req().RouteIs(match) || (md_active ?? null) == route))"><i class="bi @(icon)"></i>@(T(label))</a>
+</text>}

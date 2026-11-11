@@ -1,0 +1,96 @@
+@* Source: resources/views/supplier/requests/show.blade.php *@
+@{
+    bool canBid = Get<bool>("canBid");
+    int completed = Get<int>("completed");
+    string? denyReason = Get<string?>("denyReason");
+    Bid? myBid = Get<Bid?>("myBid");
+    int? onTime = Get<int?>("onTime");
+    int ratingCount = Get<int>("ratingCount");
+    SupplyRequest sr = Get<SupplyRequest>("sr");
+    Supplier? supplier = Get<Supplier?>("supplier");
+}
+@* UC2-03 Request details - UI/03 lines 611-662. A request that is no longer open takes the UC2-10 look (dim thumb, disabled button, lock line). *@
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; }
+@{ ViewData["title"] = sr.Code; }
+@{
+var first = sr.Supplies.First();
+var more = sr.Supplies.Count() - 1;
+var open = sr.RequestStatus == "Open";
+}
+@* @section('content') = the Razor body *@
+    <div class="body-pad"><div class="wrap">
+      <div class="crumb"><a href="@(Route("supplier.requests.index"))" class="md-link" style="color:inherit">@(T("Browse Requests"))</a> <span style="color:var(--faint)">/</span> <b>@(sr.Code)</b></div>
+      @await Html.PartialAsync("~/Views/Shared/_FlashSite.cshtml", With(new Dictionary<string, object?> {  }))
+
+      <div class="d-flex align-items-start justify-content-between mb-5 flex-wrap" style="gap:40px">
+        <div class="d-flex gap-4">
+          @await Html.PartialAsync("~/Views/supplier/partials/thumb.cshtml", With(new Dictionary<string, object?> { ["s"] = first, ["style"] = "width:92px;height:92px;font-size:36px" + (open ? "" : ";opacity:.55") }))
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-3 flex-wrap"><span class="rq-no">@(sr.Code)</span>@if (Php.B(open)) {<text>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = "Open", ["label"] = "Open for bidding" }))</text>} else {<text>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = sr.RequestStatus }))</text>}@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = sr.Priority, ["priority"] = true }))</div>
+            <h1 class="pg-h1">@(first?.SupplyName)@if (more > 0) {<text> <span style="color:var(--faint);font-weight:500">+ @(more) more @(more == 1 ? T("item") : T("items"))</span></text>}</h1>
+            <p class="pg-sub">@(sr.Hotel.HotelName) · @(T("published :date", new Dictionary<string, object?> { ["date"] = sr.CreatedAt.TranslatedFormat("d M Y") })) · @(T(sr.Bids.Count == 1 ? ":n supplier has bid" : ":n suppliers have bid", new Dictionary<string, object?> { ["n"] = sr.Bids.Count }))</p>
+          </div>
+        </div>
+        @if (Php.B(myBid)) {<text>
+        <a class="btn b-line btn-lg" href="@(Route("supplier.bids.show", myBid))" style="flex:none">@(T("View your bid"))</a>
+        </text>} else if (Php.B(canBid)) {<text>
+        <a class="btn b-olive btn-lg" href="@(Route("supplier.bids.create", sr))" style="flex:none"><i class="bi bi-hammer"></i>@(T("Create bid"))</a>
+        </text>} else {<text>
+        <span title="@(denyReason)" style="flex:none" tabindex="0"><button class="btn b-off btn-lg" type="button" disabled><i class="bi bi-hammer"></i>@(T("Create bid"))</button></span>
+        </text>}
+      </div>
+
+      @if (!(Php.B(open))) {<text>
+      <div class="lock mb-4"><i class="bi bi-lock-fill me-2"></i>@(T(sr.RequestStatus == "Awarded" ? "Bidding closed. This request was awarded to a supplier and no longer accepts bids." : "Bidding closed. This request is closed and no longer accepts bids."))</div>
+      </text>} else if (!Php.B(canBid) && !Php.B(myBid) && supplier.ProfileStatus != "Verified") {<text>
+      <div class="al a-warn mb-4"><i class="bi bi-exclamation-triangle-fill"></i><div><div class="al-t">@(T("Your registration is being verified"))</div><div class="al-b">@(T("You can browse open supply requests straight away. You will be able to submit bids as soon as your registration is verified."))</div></div></div>
+      </text>}
+
+      <div class="row g-4">
+        <div class="col-12 col-lg-8">
+          <div class="cd mb-4">
+            <div class="cd-h"><div class="cd-t">@(T("Items requested"))</div><span style="font-size:14px;color:var(--muted);font-weight:500">@(sr.ItemsSummary())</span></div>
+            <div class="md-table-scroll">
+            <table class="tb">
+              <thead><tr><th>#</th><th>@(T("Product"))</th><th>@(T("Category"))</th><th class="text-end">@(T("Quantity"))</th></tr></thead>
+              <tbody>
+                @foreach (var (s, loop) in Php.Loop(sr.Supplies)) {<text>
+                <tr><td class="num" style="color:var(--faint)">@(loop.Iteration)</td><td><div style="font-weight:700">@(s.SupplyName)</div>@if (Php.B(s.Description)) {<text><div style="font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.5">@(s.Description)</div></text>}</td><td>@(s.Category)</td><td class="text-end num" style="font-weight:600">@(Php.NumberFormat(s.Quantity)) @(s.UnitOfMeasure)</td></tr>
+                </text>}
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <div class="al a-info"><i class="bi bi-info-circle-fill"></i><div><div class="al-t">@(T("How the hotel ranks bids"))</div><div class="al-b">@(T("Bids are shown to the hotel sorted by price first, then by delivery time. You can update or cancel your bid at any point before the contract is signed, and you may hold only one active bid per request."))</div></div></div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="cd cd-p mb-3">
+            <div class="cd-t mb-4">@(T("Request details"))</div>
+            <dl class="kv mb-0">
+              <dt>@(T("Hotel"))</dt><dd>@(sr.Hotel.HotelName)</dd>
+              <dt>@(T("City"))</dt><dd>@(T(sr.Hotel.City))</dd>
+              <dt>@(T("Required delivery date"))</dt><dd class="num">@(sr.RequiredDeliveryDate.TranslatedFormat("d M Y"))</dd>
+              <dt>@(T("Priority"))</dt><dd>@(sr.Priority)</dd>
+              <dt>@(T("Bids received"))</dt><dd class="num" style="margin-bottom:0">@(sr.Bids.Count)</dd>
+            </dl>
+          </div>
+          @if (sr.Supplies.Contains( (x) => Specs.WantsLogo(x.Description)) && (Php.B(logo = HotelLogo.Url(sr.HotelId)))) {<text>
+          @* client notes: optional customization, the hotel logo to print on the marked items *@
+          <div class="cd cd-p mb-3">
+            <div class="cd-t mb-3">@(T("Customization"))</div>
+            <div class="d-flex align-items-center gap-3"><img src="@(logo)" alt="@(T("Hotel logo"))" style="width:72px;height:72px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:12px"><div style="font-size:14px;color:var(--muted)">@(T("Print this logo on the items marked \"Customization\". Logo only, no other artwork."))</div></div>
+          </div>
+          </text>}
+          <div class="cd cd-p" style="background:var(--olive-pale);border-color:#AECFC0">
+            <div class="cd-t mb-4">@(T("Your standing with this hotel"))</div>
+            <dl class="kv mb-0">
+              <dt>@(T("Orders completed"))</dt><dd class="num">@(completed)</dd>
+              <dt>@(T("On-time delivery"))</dt><dd class="num">@(Php.IsNull(onTime) ? "-" : onTime + "%")</dd>
+              <dt>@(T("Your rating"))</dt><dd style="margin-bottom:0"><span style="color:var(--warn)"><i class="bi bi-star-fill"></i></span> <span class="num">@(Php.NumberFormat((decimal) supplier.AvgRating, 1))</span> <span style="color:var(--muted);font-weight:500;font-size:13px">@(T(ratingCount == 1 ? "from :n rating" : "from :n ratings", new Dictionary<string, object?> { ["n"] = ratingCount }))</span></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div></div>
+@* @endsection *@

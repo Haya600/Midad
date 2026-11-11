@@ -1,0 +1,18 @@
+@* Source: resources/views/partials/pg-hotel.blade.php *@
+@{
+    string? noun = Get<string?>("noun");
+    dynamic p = ViewBag.p;
+}
+@* UC1-02 footer (lines 263-266): "Showing 1–6 of 7 requests" + .pg pager. $p = LengthAwarePaginator, $noun = "requests" *@
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+          <div style="font-size:13px;color:var(--muted)">@(T("Showing :range of :total :noun", new Dictionary<string, object?> { ["range"] = p.Total() ? p.FirstItem() + "–" + p.LastItem() : 0, ["total"] = p.Total(), ["noun"] = T(noun) }))</div>
+          @if (p.LastPage() > 1) {<text>
+          <div class="pg">
+            @if (Php.B(p.OnFirstPage())) {<text><span><i class="bi bi-chevron-left" style="font-size:11px"></i></span></text>} else {<text><a class="md-link" style="color:inherit" href="@(p.PreviousPageUrl())" aria-label="@(T("Previous"))"><span><i class="bi bi-chevron-left" style="font-size:11px"></i></span></a></text>}
+            @foreach (var n in Php.Range(1, p.LastPage())) {<text>
+              @if (n == p.CurrentPage()) {<text><span class="on">@(n)</span></text>} else if (n == 1 || n == p.LastPage() || Php.Abs(n - p.CurrentPage()) <= 2) {<text><a class="md-link" style="color:inherit" href="@(p.Url(n))"><span>@(n)</span></a></text>} else if (Php.Abs(n - p.CurrentPage()) == 3) {<text><span>…</span></text>}
+            </text>}
+            @if (Php.B(p.HasMorePages())) {<text><a class="md-link" style="color:inherit" href="@(p.NextPageUrl())" aria-label="@(T("Next"))"><span><i class="bi bi-chevron-right" style="font-size:11px"></i></span></a></text>} else {<text><span><i class="bi bi-chevron-right" style="font-size:11px"></i></span></text>}
+          </div>
+          </text>}
+        </div>

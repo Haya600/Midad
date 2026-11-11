@@ -1,0 +1,43 @@
+@* Source: resources/views/public/contact.blade.php *@
+@{
+    string[] subjects = Get<string[]>("subjects");
+}
+@* PUB-03 Contact us - UI/04-public-pages.html lines 421-450. Mailed, not stored (§6.4). *@
+@{ Layout = "~/Views/Shared/_LayoutPublic.cshtml"; ViewData["nav"] = "contact"; }
+@{ ViewData["title"] = "Contact us"; }
+@* @section('content') = the Razor body *@
+    <section class="sect s-cream"><div class="wrap">
+      <div class="row g-5">
+        <div class="col-12 col-lg-5">
+          <span class="kicker">@(T("Contact"))</span>
+          <h2 style="font-size:40px">@(T("Talk to the Midad team"))</h2>
+          <p class="sect-sub" style="margin-bottom:38px">@(T("Questions about registering, bidding or contracts? Send us a message and we reply within one working day."))</p>
+          <div class="ct-i"><i class="bi bi-envelope"></i><div><h4>@(T("Email"))</h4><p>@(T("support@midad.sa"))</p></div></div>
+          <div class="ct-i"><i class="bi bi-telephone"></i><div><h4>@(T("Phone"))</h4><p>+966 13 340 0000<br>@(T("Sunday to Thursday, 8:00 – 16:00"))</p></div></div>
+          <div class="ct-i"><i class="bi bi-geo-alt"></i><div><h4>@(T("Address"))</h4><p>@(T("Jubail Industrial College"))<br>@(T("Department of Business Administration"))<br>@(T("Jubail Industrial City 31961, Saudi Arabia"))</p></div></div>
+          <div class="ct-i" style="margin-bottom:0"><i class="bi bi-life-preserver"></i><div><h4>@(T("Help centre"))</h4><p>@(T("Guides for hotels and suppliers, and answers to common questions."))</p></div></div>
+        </div>
+        <div class="col-12 col-lg-7">
+          @if (Php.B(Session("sent"))) {<text>
+          <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill"></i><div><div class="al-t">@(T("Message sent"))</div><div class="al-b">@(T("Thank you. We reply within one working day."))</div></div></div>
+          </text>}
+          <form method="POST" action="@(Route("contact.send"))" class="cd"><div class="cd-p">
+            @Html.AntiForgeryToken()
+            <div class="cd-t mb-4">@(T("Send us a message"))</div>
+            <div class="row g-3">
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "full_name", ["label"] = "Full name", ["placeholder"] = $"{Php.E(T("Your name"))}", ["required"] = true, ["maxlength"] = "100", ["autocomplete"] = "name" }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "email", ["label"] = "Email address", ["type"] = "email", ["placeholder"] = $"{Php.E(T("you@company.com"))}", ["required"] = true, ["maxlength"] = "150", ["autocomplete"] = "email" }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "company", ["label"] = "Company", ["placeholder"] = $"{Php.E(T("Hotel or supplier name"))}", ["maxlength"] = "120", ["autocomplete"] = "organization" }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "sender_type", ["label"] = "I am a", ["type"] = "select", ["placeholder"] = $"{Php.E(T("Select one"))}", ["options"] = new Dictionary<string, object?> { ["Hotel"] = "Hotel", ["Supplier"] = "Supplier", ["Other"] = "Other" }, ["required"] = true }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 fgrp", ["name"] = "subject", ["label"] = "Subject", ["type"] = "select", ["placeholder"] = $"{Php.E(T("What is this about?"))}", ["options"] = subjects, ["required"] = true }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 fgrp", ["name"] = "message", ["label"] = "Message", ["type"] = "textarea", ["placeholder"] = $"{Php.E(T("Tell us how we can help…"))}", ["style"] = "min-height:150px", ["required"] = true, ["minlength"] = "10", ["maxlength"] = "2000" }))
+            </div>
+            <div class="d-flex align-items-center justify-content-between mt-2">
+              <span style="font-size:13px;color:var(--muted)"><i class="bi bi-lock me-2"></i>@(T("Your details are never shared."))</span>
+              <button class="btn b-olive btn-lg" type="submit"><i class="bi bi-send"></i>@(T("Send message"))</button>
+            </div>
+          </div></form>
+        </div>
+      </div>
+    </div></section>
+@* @endsection *@

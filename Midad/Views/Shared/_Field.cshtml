@@ -1,0 +1,78 @@
+@* Source: resources/views/components/field.blade.php *@
+@* component props: col, hint, icon, id, inputClass, label, name, options, placeholder, post, pre, rows, shell, star, type, value, warning *@
+@*
+  One form field in the markup of its shell (blueprint §9.0). The prototypes draw fields as <div class="fld">;
+  this renders the real control with the same classes.
+
+  <x-field shell="public" col="col-12 col-lg-8 fgrp" name="hotel_name" label="Hotel name" required maxlength="120"
+           placeholder="e.g. Mövenpick Al Khobar"/>
+  <x-field shell="hotel" col="col-12 col-md-4" name="items[0][quantity]" label="Quantity" type="number" min="1" required post="pieces"/>
+  <x-field shell="supplier" name="estimated_delivery_days" label="Estimated delivery" type="number" post="days"
+           hint="From contract signature" :warning="$late ? 'Later than the hotel\'s date.' : null"/>
+
+  shell   hotel → .req/.help/.err/.ig-add · public → .star/.hint/.emsg/.ig-pre · supplier → + .ig-post/.wmsg
+  star    false = no * although the field is required (PUB-04 log in)
+  type    text|email|tel|password|number|date|select|textarea|static   (static = read-only display box)
+  Every other attribute (required, min, max, maxlength, pattern, inputmode, …) goes on the control.
+*@
+@{ Props(new Dictionary<string, object?> { ["shell"] = "public", ["1"] = "name", ["label"] = null, ["type"] = "text", ["value"] = null, ["options"] = new List<object?>(), ["placeholder"] = null, ["hint"] = null, ["pre"] = null, ["post"] = null, ["icon"] = null, ["col"] = null, ["warning"] = null, ["star"] = null, ["inputClass"] = "", ["id"] = null, ["rows"] = 3 }); dynamic shell = ViewBag.shell; dynamic name = ViewBag.name; dynamic label = ViewBag.label; dynamic type = ViewBag.type; dynamic value = ViewBag.value; dynamic options = ViewBag.options; dynamic placeholder = ViewBag.placeholder; dynamic hint = ViewBag.hint; dynamic pre = ViewBag.pre; dynamic post = ViewBag.post; dynamic icon = ViewBag.icon; dynamic col = ViewBag.col; dynamic warning = ViewBag.warning; dynamic star = ViewBag.star; dynamic inputClass = ViewBag.inputClass; dynamic id = ViewBag.id; dynamic rows = ViewBag.rows; }
+@{
+var hotel = shell == "hotel";
+var key = Php.Trim(Php.StrReplace(new[] { "[]", "[", "]" }, new[] { "", ".", "" }, name), ".");
+id = id ?? Php.Trim(Php.PregReplace("/[^A-Za-z0-9_]+/", "_", Php.StrReplace("[]", "", name)), "_");
+var error = errors.First(key);
+var val = type == "password" ? null : Old(key, value);
+var required = star ?? attributes.Has("required");
+var danger = Php.B(hotel) ? "var(--danger)" : "var(--dang)";
+icon = icon ?? new Dictionary<string, object ? > { ["select"] = "bi-chevron-down", ["date"] = "bi-calendar3", ["password"] = "bi-eye" }[type] ?? null;
+var cls = Php.Trim("fld " + inputClass + (error ? " fld-err" : "") + (type == "static" ? (hotel ? " fld-dis" : " fld-off") : ""));
+var ctrl = attributes.Merge(new Dictionary<string, object?> { ["class"] = cls, ["id"] = id }).Merge((warning && ! error) ? new Dictionary<string, object?> { ["style"] = "border-color:var(--warn)" } : new List<object?>());
+var hintText = Php.Trim((string) T((string) hint));
+label = Php.B(label) ? T(label) : label;
+placeholder = Php.IsString(placeholder) ? T(placeholder) : placeholder;
+pre = Php.B(pre) ? T(pre) : pre;
+post = Php.B(post) ? T(post) : post;
+warning = Php.B(warning) ? T(warning) : warning;
+}
+<div @Html.Raw((Php.B(col)) ? $" class=\"{Php.E(col)}\" " : "")>
+  @if (Php.B(label)) {<text><label class="lbl" for="@(id)">@(label)@if (Php.B(required)) {<text> <span class="@(Php.B(hotel) ? "req" : "star")">*</span></text>}</label></text>}
+  @if (Php.B(pre) || Php.B(post)) {@Html.Raw("<div class=\"ig\">")}
+  @if (Php.B(pre)) {<text><span class="ig-pre">@(pre)</span></text>}
+  @if (Php.B(icon)) {@Html.Raw("<div class=\"md-ico\">")}
+  @switch (type) {
+    case "select":<text>
+      <select name="@(name)" @(ctrl)>
+        @if (placeholder != false) {<text><option value="">@(placeholder ?? T("Select"))</option></text>}
+        @foreach (var (k, opt) in Php.Pairs(options)) {<text>
+          @{ var v = Php.ArrayIsList(options) ? opt : k; }
+          <option value="@(v)" @Html.Raw(((string) val == (string) v) ? "selected" : "")>@(T(opt))</option>
+        </text>}
+      </select>
+      </text>break;
+    case "textarea":<text>
+      <textarea name="@(name)" rows="@(rows)" @Html.Raw((Php.B(placeholder)) ? $" placeholder=\"{Php.E(placeholder)}\" " : "") @(ctrl)>@(val)</textarea>
+      </text>break;
+    case "static":<text>
+      <div @(ctrl)>@(val)</div>
+      </text>break;
+    default:<text>
+      <input type="@(type)" name="@(name)" @Html.Raw((!Php.IsNull(val)) ? $" value=\"{Php.E(val)}\" " : "") @Html.Raw((Php.B(placeholder)) ? $" placeholder=\"{Php.E(placeholder)}\" " : "") @(ctrl)>
+  </text>break; }
+  @if (Php.B(icon)) {<text>
+    @if (type == "password") {<text>
+      <button type="button" class="md-ico-i md-eye" data-md-eye aria-label="@(T("Show password"))" style="color:@(Php.B(error) ? danger : "var(--muted)")"><i class="bi @(icon)"></i></button>
+    </text>} else {<text>
+      <i class="md-ico-i bi @(icon)" style="color:@(Php.B(error) ? danger : "var(--muted)")"></i>
+    </text>}
+  @Html.Raw("</div>")</text>}
+  @if (Php.B(post)) {<text>@if (Php.B(hotel)) {<text><div class="ig-add">@(post)</div></text>} else {<text><span class="ig-post">@(post)</span></text>} </text>}
+  @if (Php.B(pre) || Php.B(post)) {@Html.Raw("</div>")}
+  @(slot)
+  @if (Php.B(error)) {<text>
+    <div class="@(Php.B(hotel) ? "err" : "emsg")"><i class="bi bi-exclamation-circle me-1"></i>@(T(error))</div>
+  </text>} else if (Php.B(warning)) {<text>
+    <div class="wmsg"><i class="bi bi-exclamation-triangle me-1"></i>@(warning)</div>
+  </text>} else if (hintText != "") {<text>
+    <div class="@(Php.B(hotel) ? "help" : "hint")">@(hintText)</div>
+  </text>}
+</div>

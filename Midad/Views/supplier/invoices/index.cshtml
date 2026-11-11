@@ -1,0 +1,33 @@
+@* Source: resources/views/supplier/invoices/index.blade.php *@
+@{
+    List<Invoice> invoices = Get<List<Invoice>>("invoices");
+}
+@* Supplier: Invoices (§7 - UC2-09 rows). *@
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; }
+@{ ViewData["title"] = "Invoices"; }
+@* @section('content') = the Razor body *@
+    <div class="body-pad"><div class="wrap">
+      <div class="sect-head" style="margin-bottom:32px">
+        <div><h1 class="pg-h1">@(T("Invoices"))</h1><p class="pg-sub">@(T(invoices.Count() == 1 ? ":n invoice" : ":n invoices", new Dictionary<string, object?> { ["n"] = invoices.Count() })) · @(T("SAR")) @(Php.NumberFormat((decimal) invoices.WhereIn("invoice_status", new[] { "Paid", "Partially Refunded" }).Sum("subtotal_amount") - (decimal) invoices.WhereIn("invoice_status", new[] { "Paid", "Partially Refunded" }).Sum("commission_amount"), 2)) @(T("paid out after commission"))</p></div>
+      </div>
+      @if (Php.Any(invoices)) { foreach (var i in invoices) {<text>
+        @{ var r = i.Order.Contract.Bid.Request; }
+      <article class="@Css(("rq", true), ("rq-dim", i.InvoiceStatus == "Refunded"))">
+        @await Html.PartialAsync("~/Views/supplier/partials/thumb.cshtml", With(new Dictionary<string, object?> { ["s"] = r.Supplies.First() }))
+        <div class="rq-b">
+          <div class="rq-top"><span class="rq-no">@(i.InvoiceNo)</span><span class="rq-hotel">@(r.Hotel.HotelName) · @(i.Order.OrderNo)</span>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = i.InvoiceStatus }))</div>
+          <h3 class="rq-h"><a href="@(Route("supplier.invoices.show", i))" class="md-link" style="color:inherit">@(r.Title)</a></h3>
+          <div class="rq-s">@(T("Issued :date · total to hotel SAR :amount incl. VAT", new Dictionary<string, object?> { ["date"] = i.IssueDate.TranslatedFormat("d M Y"), ["amount"] = Php.NumberFormat((decimal) i.TotalAmount, 2) }))</div>
+          <div class="rq-f">
+            <span class="mt"><i class="bi bi-tag"></i>@(T("Subtotal")) <b>@(T("SAR")) @(Php.NumberFormat((decimal) i.SubtotalAmount, 2))</b></span>
+            <span class="mt"><i class="bi bi-percent"></i>@(T("Commission")) <b>@(T("SAR")) @(Php.NumberFormat((decimal) i.CommissionAmount, 2))</b></span>
+            <span class="mt"><i class="bi bi-wallet2"></i>@(T("Your payout")) <b>@(T("SAR")) @(Php.NumberFormat((decimal) i.SubtotalAmount - (decimal) i.CommissionAmount, 2))</b></span>
+            <span class="rq-cta"><a class="btn b-line" href="@(Route("supplier.invoices.show", i))">@(T("View invoice"))</a></span>
+          </div>
+        </div>
+      </article>
+      </text>} } else {<text>
+      <div class="lock">@(T("No invoices yet. An invoice is generated with every purchase order."))</div>
+      </text>}
+    </div></div>
+@* @endsection *@

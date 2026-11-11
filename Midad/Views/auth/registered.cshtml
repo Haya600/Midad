@@ -1,0 +1,41 @@
+@* Source: resources/views/auth/registered.blade.php *@
+@{
+    string? email = Get<string?>("email");
+    bool isSupplier = Get<bool>("isSupplier");
+    string? nextUrl = Get<string?>("nextUrl");
+}
+@* PUB-10 Account created - UI/04-public-pages.html lines 734-757 (short footer, lines 759-770). *@
+@{ Layout = "~/Views/Shared/_LayoutPublic.cshtml"; ViewData["footer"] = "short"; }
+@{ ViewData["title"] = "Account created"; }
+@section hdr_r {<text>
+  <form method="POST" action="@(Route("logout"))" class="m-0">@Html.AntiForgeryToken()<button class="btn b-line" type="submit">@(T("Log out"))</button></form>
+</text>}
+@* @section('content') = the Razor body *@
+    <section class="sect s-cream" style="padding:90px 0"><div class="wrap" style="max-width:760px">
+      <div class="step-dots" style="justify-content:center">
+        <span class="dot done"><b><i class="bi bi-check2"></i></b>@(T("Account type"))</span><i class="bi bi-chevron-right" style="color:var(--faint);font-size:12px"></i>
+        <span class="dot done"><b><i class="bi bi-check2"></i></b>@(T("Business details"))</span><i class="bi bi-chevron-right" style="color:var(--faint);font-size:12px"></i>
+        <span class="dot on"><b>3</b>@(T("Verification"))</span>
+      </div>
+
+      <div class="cd" style="text-align:center"><div class="cd-p" style="padding:56px 60px">
+        <div style="width:88px;height:88px;border-radius:26px;background:var(--olive-tint);color:var(--olive);
+                    display:inline-flex;align-items:center;justify-content:center;font-size:40px"><i class="bi bi-check-lg"></i></div>
+        <h1 style="font-size:34px;font-weight:800;letter-spacing:-.028em;margin:28px 0 0">@(T("Your account has been created"))</h1>
+        <p style="font-size:16.5px;color:var(--muted);line-height:1.62;margin:16px auto 0;max-width:48ch">
+          @(T("We sent a confirmation link to")) <b style="color:var(--ink)">@(email)</b>@(T(". Confirm your email, then our team verifies your commercial registration, usually within one working day."))
+        </p>
+
+        @if (Php.B(Session("resent"))) {<text>
+        <div class="al a-ok mt-4" style="text-align:left"><i class="bi bi-check-circle-fill"></i><div><div class="al-t">@(T("Confirmation email sent again"))</div><div class="al-b">@(T("Check your inbox at :email.", new Dictionary<string, object?> { ["email"] = email }))</div></div></div>
+        </text>}
+        <div class="al a-info mt-4" style="text-align:left"><i class="bi bi-info-circle-fill"></i><div><div class="al-t">@(T("What happens while you wait"))</div><div class="al-b">@(T(isSupplier ? "You can browse open supply requests straight away. You will be able to submit bids as soon as your registration is verified." : "You can open your dashboard straight away. You will be able to publish supply requests as soon as your registration is verified."))</div></div></div>
+
+        <div class="d-flex gap-3 justify-content-center mt-4 md-stack">
+          <a class="btn b-olive btn-lg" href="@(nextUrl)">@(T(isSupplier ? "Browse open requests" : "Go to dashboard"))</a>
+          <form method="POST" action="@(Route("register.resend"))" class="m-0">@Html.AntiForgeryToken()<button class="btn b-line btn-lg w-100" type="submit">@(T("Resend confirmation email"))</button></form>
+        </div>
+        <p style="font-size:13.5px;color:var(--faint);margin:26px 0 0">@(T("Wrong email address?")) <a href="@(Route("contact"))" class="md-link" style="color:var(--olive);font-weight:600">@(T("Change it"))</a> @(T("· Need help?")) <a href="@(Route("contact"))" class="md-link" style="color:var(--olive);font-weight:600">@(T("Contact support"))</a></p>
+      </div></div>
+    </div></section>
+@* @endsection *@

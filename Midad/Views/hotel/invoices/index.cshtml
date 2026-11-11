@@ -1,0 +1,42 @@
+@* Source: resources/views/hotel/invoices/index.blade.php *@
+@{
+    Paginator<Invoice> invoices = Get<Paginator<Invoice>>("invoices");
+    int total = Get<int>("total");
+    decimal unpaid = Get<decimal>("unpaid");
+}
+@* Hotel: Invoices (§7 - clone of UC1-02). *@
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Invoices"; }
+@section crumb {<text><b>@(T("Invoices"))</b></text>}
+@* @section('content') = the Razor body *@
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div><h1>@(T("Invoices"))</h1><p>@(T(total == 1 ? ":n invoice" : ":n invoices", new Dictionary<string, object?> { ["n"] = total })) · @(T("SAR :amount unpaid", new Dictionary<string, object?> { ["amount"] = Php.NumberFormat((decimal) unpaid, 2) }))</p></div>
+        </div>
+        @await Html.PartialAsync("~/Views/hotel/partials/bar.cshtml", With(new Dictionary<string, object?> { ["statuses"] = new[] { "Unpaid", "Paid", "Partially Refunded", "Refunded" } }))
+        <div class="card-m">
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Invoice"))</th><th>@(T("Order"))</th><th>@(T("Supplier"))</th><th>@(T("Issued"))</th><th class="text-end">@(T("Subtotal"))</th><th class="text-end">@(T("VAT 15%"))</th><th class="text-end">@(T("Total"))</th><th>@(T("Status"))</th><th></th></tr></thead>
+            <tbody>
+              @if (Php.Any(invoices)) { foreach (var i in invoices) {<text>
+              <tr data-href="@(Route("hotel.invoices.show", i))">
+                <td class="num" style="font-weight:500">@(i.InvoiceNo)</td>
+                <td class="num">@(i.Order.OrderNo)</td>
+                <td>@(i.Order.Contract.Bid.Supplier.CompanyName)</td>
+                <td class="num">@(i.IssueDate.TranslatedFormat("d M Y"))</td>
+                <td class="text-end num">@(Php.NumberFormat((decimal) i.SubtotalAmount, 2))</td>
+                <td class="text-end num">@(Php.NumberFormat((decimal) i.VatAmount, 2))</td>
+                <td class="text-end num" style="font-weight:500">@(T("SAR")) @(Php.NumberFormat((decimal) i.TotalAmount, 2))</td>
+                <td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = i.InvoiceStatus }))</td>
+                <td class="text-end"><a href="@(Route("hotel.invoices.show", i))" aria-label="Open @(i.InvoiceNo)"><i class="bi bi-chevron-right" style="color:var(--faint)"></i></a></td>
+              </tr>
+              </text>} } else {<text>
+              <tr><td colspan="9" style="color:var(--muted)">@(T("No invoices yet. An invoice is generated with every purchase order."))</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_PgHotel.cshtml", With(new Dictionary<string, object?> { ["p"] = invoices, ["noun"] = "invoices" }))
+@* @endsection *@

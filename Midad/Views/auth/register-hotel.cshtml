@@ -1,0 +1,29 @@
+@* Source: resources/views/auth/register-hotel.blade.php *@
+@* PUB-07 Register a hotel (lines 584-613); PUB-09 error state (lines 687-717). *@
+@{ Layout = "~/Views/Shared/_LayoutPublic.cshtml"; ViewData["nav"] = "hotels"; }
+@{ ViewData["title"] = "Register a hotel"; }
+@* @section('content') = the Razor body *@
+    <section class="sect s-cream"><div class="wrap" style="max-width:820px">
+      @await Html.PartialAsync("~/Views/auth/partials/register-head.cshtml", With(new Dictionary<string, object?> { ["step"] = 2 }))
+      @if (errors.Any()) {<text>
+      <div class="ctr" style="margin-bottom:26px"><h2 style="font-size:36px">@(T("Tell us about your hotel"))</h2></div>
+      @await Html.PartialAsync("~/Views/auth/partials/register-summary.cshtml", With(new Dictionary<string, object?> {  }))
+      </text>} else {<text>
+      <div class="ctr" style="margin-bottom:32px"><h2 style="font-size:36px">@(T("Tell us about your hotel"))</h2><p class="sect-sub">@(T("We verify every business before it can post requests."))</p></div>
+      </text>}
+
+      <form method="POST" action="@(Route("register.hotel.store"))" class="cd" data-register><div class="cd-p">
+        @Html.AntiForgeryToken()
+        <div class="cd-t mb-4">@(T("Hotel details"))</div>
+        <div class="row g-3">
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-8 fgrp", ["name"] = "hotel_name", ["label"] = "Hotel name", ["placeholder"] = $"{Php.E(T("e.g. Mövenpick Al Khobar"))}", ["required"] = true, ["maxlength"] = "120", ["autocomplete"] = "organization", ["data-ok"] = true }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-4 fgrp", ["name"] = "city", ["label"] = "City", ["type"] = "select", ["placeholder"] = $"{Php.E(T("Select city"))}", ["options"] = Config("midad.cities"), ["required"] = true, ["data-ok"] = true }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "commercial_reg_no", ["label"] = "Commercial registration no.", ["placeholder"] = $"{Php.E(T("10 digits"))}", ["hint"] = "Must be unique", ["required"] = true, ["inputmode"] = "numeric", ["minlength"] = "10", ["maxlength"] = "10", ["pattern"] = "^[0-9]{10}$", ["title"] = $"{Php.E(T("10 digits"))}", ["data-ok"] = true, ["data-cr"] = true }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 col-md-6 fgrp", ["name"] = "contact_person", ["label"] = "Contact person", ["placeholder"] = $"{Php.E(T("Full name"))}", ["required"] = true, ["maxlength"] = "100", ["autocomplete"] = "name", ["data-ok"] = true }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "col-12 fgrp", ["name"] = "hotel_address", ["label"] = "Hotel address", ["placeholder"] = $"{Php.E(T("Street, district"))}", ["hint"] = "The region is set from the city", ["required"] = true, ["maxlength"] = "200", ["autocomplete"] = "street-address", ["data-ok"] = true }))
+        </div>
+        @await Html.PartialAsync("~/Views/auth/partials/account-fields.cshtml", With(new Dictionary<string, object?> { ["emailPh"] = "you@hotel.com", ["emailHint"] = "Used to log in · must be unique", ["submit"] = "Create hotel account" }))
+      </div></form>
+    </div></section>
+@* @endsection *@
+@{ Push("scripts", @<text>@await Html.PartialAsync("~/Views/auth/partials/register-js.cshtml", With(new Dictionary<string, object?> {  }))</text>); }

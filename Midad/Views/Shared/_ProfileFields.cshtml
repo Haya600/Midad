@@ -1,0 +1,69 @@
+@* Source: resources/views/partials/profile-fields.blade.php *@
+@{
+    Admin admin = Get<Admin>("admin");
+    string? kind = Get<string?>("kind");
+    string? phone = Get<string?>("phone");
+    dynamic profile = ViewBag.profile;
+    string? shell = Get<string?>("shell");
+    UserAccount user = Get<UserAccount>("user");
+}
+@* PUB-07 / PUB-08 fields (UI/04 lines 594-605, 640-662) for the profile pages and the admin edit (§7).
+     $shell hotel|supplier, $kind hotel|supplier, $profile Hotel|Supplier, $user UserAccount, $phone "55 218 4470", $admin bool *@
+@{
+var g = shell == "hotel" ? "" : " fgrp";
+var cardT = shell == "hotel" ? "card-t mb-3" : "cd-t mb-4";
+var line = shell == "hotel" ? "var(--border)" : "var(--line)";
+var picked = Old("supply_categories", kind == "supplier" ? profile.CategoryList : new List<object?>());
+}
+        <div class="@(cardT)">@(T(kind == "hotel" ? "Hotel details" : "Supplier details"))</div>
+        <div class="row g-3">
+          @if (kind == "hotel") {<text>
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-8{Php.E(g)}", ["name"] = "hotel_name", ["label"] = "Hotel name", ["value"] = profile.HotelName, ["required"] = true, ["maxlength"] = "120" }))
+          </text>} else {<text>
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-8{Php.E(g)}", ["name"] = "company_name", ["label"] = "Company name", ["value"] = profile.CompanyName, ["required"] = true, ["maxlength"] = "120" }))
+          </text>}
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-4{Php.E(g)}", ["name"] = "city", ["label"] = "City", ["type"] = "select", ["placeholder"] = $"{Php.E(T("Select city"))}", ["options"] = Config("midad.cities"), ["value"] = profile.City, ["required"] = true }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "commercial_reg_no", ["label"] = "Commercial registration no.", ["value"] = profile.CommercialRegNo, ["hint"] = "Must be unique", ["required"] = true, ["inputmode"] = "numeric", ["minlength"] = "10", ["maxlength"] = "10", ["pattern"] = "^[0-9]{10}$", ["title"] = $"{Php.E(T("10 digits"))}" }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "contact_person", ["label"] = "Contact person", ["value"] = profile.ContactPerson, ["required"] = true, ["maxlength"] = "100" }))
+          @if (kind == "hotel") {<text>
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-8{Php.E(g)}", ["name"] = "hotel_address", ["label"] = "Hotel address", ["value"] = profile.HotelAddress, ["placeholder"] = $"{Php.E(T("Street, district"))}", ["required"] = true, ["maxlength"] = "200" }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-4{Php.E(g)}", ["name"] = "region", ["label"] = "Region", ["type"] = "static", ["value"] = T(profile.Region), ["hint"] = "Set from the city" }))
+          </text>}
+          @if (kind == "supplier") {<text>
+          <div class="col-12@(g)"><label class="lbl">@(T("Supply categories")) <span class="@(shell == "hotel" ? "req" : "star")">*</span></label>
+            <div class="d-flex gap-2 flex-wrap" style="padding-top:4px">
+              @foreach (var cat in Config("midad.categories")) {<text>
+              @{ var on = Php.InArray(cat, picked, true); }
+              @if (shell == "hotel") {<text>
+              <label class="@Css(("btn btn-sm md-chip", true), ("btn-primary", on), ("btn-white", ! on))" data-on="btn-primary" data-off="btn-white"><input type="checkbox" class="md-hide" name="supply_categories[]" value="@(cat)" @Html.Raw((on) ? "checked" : "")><i class="bi bi-check2 me-1"></i>@(cat)</label>
+              </text>} else {<text>
+              <label class="@Css(("btn btn-sm md-chip", true), ("b-olive", on), ("b-line", ! on))" data-on="b-olive" data-off="b-line" @Html.Raw((Php.B(on)) ? $" style=\"box-shadow:none\" " : "")><input type="checkbox" class="md-hide" name="supply_categories[]" value="@(cat)" @Html.Raw((on) ? "checked" : "")><i class="bi bi-check2"></i>@(cat)</label>
+              </text>}
+              </text>}
+            </div>
+            @if (errors.Has("supply_categories")) { var message = errors.First("supply_categories"); <text><div class="@(shell == "hotel" ? "err" : "emsg")"><i class="bi bi-exclamation-circle me-1"></i>@(T(message))</div></text>} else {<text><div class="@(shell == "hotel" ? "help" : "hint")">@(T("You will be shown requests in these categories first."))</div></text>}
+          </div>
+          </text>}
+          @if (admin ?? false) {<text>
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "profile_status", ["label"] = "Profile status", ["type"] = "select", ["placeholder"] = false, ["options"] = new Dictionary<string, object?> { ["Pending"] = "Pending", ["Verified"] = "Verified", ["Rejected"] = "Rejected" }, ["value"] = profile.ProfileStatus, ["required"] = true }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "account_status", ["label"] = "Account status", ["type"] = "select", ["placeholder"] = false, ["options"] = new Dictionary<string, object?> { ["Pending Verification"] = "Pending Verification", ["Active"] = "Active", ["Suspended"] = "Suspended" }, ["value"] = user.AccountStatus, ["required"] = true }))
+          </text>}
+        </div>
+        <div class="@(cardT) mt-3" style="padding-top:@(shell == "hotel" ? 20 : 26)px;border-top:1px solid @(line)">@(T("Account login"))</div>
+        <div class="row g-3">
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "email", ["label"] = "Email address", ["type"] = "email", ["value"] = user.Email, ["hint"] = "Used to log in · must be unique", ["required"] = true, ["maxlength"] = "150" }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "phone", ["label"] = "Phone", ["type"] = "tel", ["pre"] = shell == "hotel" ? null : "+966", ["value"] = phone, ["placeholder"] = $"{Php.E(T("5X XXX XXXX"))}", ["hint"] = shell == "hotel" ? "Saudi mobile, +966 is added" : null, ["required"] = true, ["inputmode"] = "numeric", ["maxlength"] = "12", ["pattern"] = "^0?5[0-9]\s?[0-9]{3}\s?[0-9]{4}$", ["title"] = $"{Php.E(T("5X XXX XXXX"))}" }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "password", ["label"] = "New password", ["type"] = "password", ["placeholder"] = $"{Php.E(T("Leave empty to keep it"))}", ["hint"] = "At least 8 characters, one number", ["minlength"] = "8", ["pattern"] = "^(?=.*[A-Za-z])(?=.*\d).{8,}$", ["title"] = $"{Php.E(T("At least 8 characters, one number"))}", ["autocomplete"] = "new-password" }))
+          @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = shell, ["col"] = $"col-12 col-md-6{Php.E(g)}", ["name"] = "password_confirmation", ["label"] = "Confirm password", ["type"] = "password", ["placeholder"] = "••••••••", ["minlength"] = "8", ["autocomplete"] = "new-password" }))
+        </div>
+@{ Push("scripts", @<text>
+<script>
+document.querySelectorAll('.md-chip input').forEach(function (cb) {
+  cb.addEventListener('change', function () {
+    var l = cb.closest('.md-chip');
+    l.classList.toggle(l.dataset.on, cb.checked); l.classList.toggle(l.dataset.off, !cb.checked);
+    if (l.dataset.on === 'b-olive') l.style.boxShadow = cb.checked ? 'none' : '';
+  });
+});
+</script>
+</text>); }

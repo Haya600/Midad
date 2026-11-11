@@ -1,0 +1,58 @@
+@* Source: resources/views/hotel/requests/_item.blade.php *@
+@{
+    int count = Get<int>("count");
+    int i = Get<int>("i");
+    dynamic item = ViewBag.item;
+    int n = Get<int>("n");
+}
+@* One .item-card of UC1-04/05/06. $i = array key, $item = values, $n = position.
+     Client notes: Category first, Product name and Specifications as dropdowns (catalog in config/midad.php),
+     optional "print our hotel logo" customization. Specifications are composed into supplies.description. *@
+@{
+var errKeys = Php.Collect(errors.Keys()).Filter( (k) => Php.StrStartsWith(k, $"items.{i}."));
+var qtyErr = errors.First($"items.{i}.quantity");
+var unitErr = errors.First($"items.{i}.unit_of_measure");
+var nameErr = errors.First($"items.{i}.supply_name");
+var unit = Old($"items.{i}.unit_of_measure", item["unit_of_measure"] ?? "");
+var cat = (string) Old($"items.{i}.category", item["category"] ?? "");
+var name = (string) Old($"items.{i}.supply_name", item["supply_name"] ?? "");
+var parsed = Specs.Parse(cat, item["description"] ?? null);
+var specVals = (IEnumerable<object>) Old($"items.{i}.specs", parsed["specs"]);
+var notes = Old($"items.{i}.notes", parsed["notes"]);
+var custom = (bool) Old($"items.{i}.custom", parsed["custom"]);
+var products = Config($"midad.catalog.{cat}.products", new List<object?>());
+var isOther = name != "" && !Php.InArray(name, products, true);
+var specs = Specs.ForCategory(cat);
+}
+                <div class="item-card mb-3" data-item="@(i)" @Html.Raw((errKeys.IsNotEmpty()) ? $" style=\"border-color:#E6BDB0;\" " : "")>
+                  <div class="d-flex justify-content-between align-items-center mb-3"><div class="item-n">@(T("Item :n", new Dictionary<string, object?> { ["n"] = n }))</div><button type="button" class="md-bare" data-remove-item style="flex:none;width:auto;line-height:1" aria-label="@(T("Remove item"))" @Html.Raw(((count ?? 2) < 2) ? $" hidden " : "")><i class="bi bi-trash" style="color:var(--danger);font-size:14px;"></i></button></div>
+                  <div class="row g-3">
+                    @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12 col-md-5", ["name"] = $"items[{Php.E(i)}][category]", ["label"] = "Category", ["type"] = "select", ["placeholder"] = $"{Php.E(T("Select a category"))}", ["options"] = Config("midad.categories"), ["value"] = cat, ["required"] = true, ["data-req"] = true, ["data-cat"] = true }))
+                    <div class="col-12 col-md-7">
+                      <label class="lbl" for="items_@(i)_product">@(T("Product name")) <span class="req">*</span></label>
+                      <div class="md-ico"><select id="items_@(i)_product" @Html.Raw((!(Php.B(isOther))) ? $" name=\"items[{Php.E(i)}][supply_name]\" " : "") class="fld @Html.Raw((Php.B(nameErr) && !Php.B(isOther)) ? $" fld-err " : "")" data-prod data-req required @Html.Raw((cat == "") ? "disabled" : "")>
+                        <option value="">@(cat == "" ? T("Choose a category first") : T("Select a product"))</option>
+                        @foreach (var p in products) {<text><option value="@(p)" @Html.Raw((name == p) ? "selected" : "")>@(T(p))</option></text>}
+                        @if (cat != "") {<text><option value="__other" @Html.Raw((isOther) ? "selected" : "")>@(T("Other (type the name)"))</option></text>}
+                      </select><i class="md-ico-i bi bi-chevron-down" style="color:@(Php.B(nameErr) ? "var(--danger)" : "var(--muted)")"></i></div>
+                      <input type="text" class="fld mt-2 @Html.Raw((Php.B(nameErr) && Php.B(isOther)) ? $" fld-err " : "")" data-prod-other data-req maxlength="120" placeholder="@(T("Type the product name"))" aria-label="@(T("Product name"))" value="@(Php.B(isOther) ? name : "")" @Html.Raw((Php.B(isOther)) ? $" name=\"items[{Php.E(i)}][supply_name]\" required " : $" hidden ")>
+                      @if (Php.B(nameErr)) {<text><div class="err"><i class="bi bi-exclamation-circle me-1"></i>@(T(nameErr))</div></text>}
+                    </div>
+                    <div class="col-12" data-specs-wrap @Html.Raw((!Php.B(specs)) ? $" hidden " : "")>
+                      <label class="lbl">@(T("Specifications"))</label>
+                      <div class="row g-2" data-specs>
+                        @foreach (var (attr, opts) in Php.Pairs(specs)) {<text>
+                        <div class="col-6 col-md-3"><div class="md-ico"><select class="fld" name="items[@(i)][specs][@(attr)]" aria-label="@(T(attr))">
+                          <option value="">@(T(attr))</option>
+                          @foreach (var o in opts) {<text><option value="@(o)" @Html.Raw(((specVals[attr] ?? "") == o) ? "selected" : "")>@(T(o))</option></text>}
+                        </select><i class="md-ico-i bi bi-chevron-down" style="color:var(--muted)"></i></div></div>
+                        </text>}
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-4"><label class="lbl" for="items_@(i)_quantity">@(T("Quantity")) <span class="req">*</span></label><div class="ig"><input id="items_@(i)_quantity" name="items[@(i)][quantity]" type="number" min="1" max="1000000" step="1" required data-req data-qty class="fld num @Html.Raw((Php.B(qtyErr)) ? $" fld-err " : "")" value="@(Old($"items.{i}.quantity", item["quantity"] ?? ""))" placeholder="0"><select name="items[@(i)][unit_of_measure]" class="ig-add" required data-req data-unit aria-label="@(T("Unit"))">@if (unit == "") {<text><option value="">@(T("unit"))</option></text>} @foreach (var u in Config("midad.units")) {<text><option value="@(u)" @Html.Raw((unit == u) ? "selected" : "")>@(T(u))</option></text>}</select></div>@if (Php.B(qtyErr)) {<text><div class="err"><i class="bi bi-exclamation-circle me-1"></i>@(T(qtyErr))</div></text>} else if (Php.B(unitErr)) {<text><div class="err"><i class="bi bi-exclamation-circle me-1"></i>@(T(unitErr))</div></text>}</div>
+                    @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12 col-md-8", ["name"] = $"items[{Php.E(i)}][notes]", ["label"] = "Additional notes", ["value"] = notes, ["placeholder"] = $"{Php.E(T("Anything else suppliers should know"))}", ["maxlength"] = "300" }))
+                    <div class="col-12">
+                      <label style="font-size:14px;color:var(--ink-2)"><input type="checkbox" name="items[@(i)][custom]" value="1" class="md-cb" data-custom @Html.Raw((custom) ? "checked" : "")><i class="bi bi-square me-2" style="color:var(--border-strong)"></i><i class="bi bi-check-square-fill me-2" style="color:var(--accent)"></i>@(T("Customization: print our hotel logo on this item (logo only)"))</label>
+                    </div>
+                  </div>
+                </div>

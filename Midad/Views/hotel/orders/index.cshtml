@@ -1,0 +1,42 @@
+@* Source: resources/views/hotel/orders/index.blade.php *@
+@{
+    int active = Get<int>("active");
+    Paginator<PurchaseOrder> orders = Get<Paginator<PurchaseOrder>>("orders");
+    int total = Get<int>("total");
+}
+@* Hotel: Orders (§7 - clone of UC1-02). *@
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Orders"; }
+@section crumb {<text><b>@(T("Orders"))</b></text>}
+@* @section('content') = the Razor body *@
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div><h1>@(T("Orders"))</h1><p>@(T(total == 1 ? ":n purchase order" : ":n purchase orders", new Dictionary<string, object?> { ["n"] = total })) · @(T(":n in progress", new Dictionary<string, object?> { ["n"] = active }))</p></div>
+        </div>
+        @await Html.PartialAsync("~/Views/hotel/partials/bar.cshtml", With(new Dictionary<string, object?> { ["statuses"] = OrderController.STATUSES }))
+        <div class="card-m">
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Order"))</th><th>@(T("Request"))</th><th>@(T("Supplier"))</th><th class="text-end">@(T("Invoice total"))</th><th>@(T("Expected"))</th><th>@(T("Delivered"))</th><th>@(T("Status"))</th><th></th></tr></thead>
+            <tbody>
+              @if (Php.Any(orders)) { foreach (var o in orders) {<text>
+              @{ var sr = o.Contract.Bid.Request; }
+              <tr data-href="@(Route("hotel.orders.show", o))">
+                <td class="num" style="font-weight:500">@(o.OrderNo)</td>
+                <td class="num">@(sr.Code)<div style="font-size:12px;color:var(--muted)">@(sr.Supplies.First()?.SupplyName)</div></td>
+                <td>@(o.Contract.Bid.Supplier.CompanyName)</td>
+                <td class="text-end num">@(Php.B(o.Invoice) ? "SAR " + Php.NumberFormat((decimal) o.Invoice.TotalAmount, 2) : "-")</td>
+                <td class="num">@(o.ExpectedDeliveryDate.TranslatedFormat("d M Y"))</td>
+                <td class="num">@(o.ActualDeliveryDate?.TranslatedFormat("d M Y") ?? "-")</td>
+                <td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = o.OrderStatus }))</td>
+                <td class="text-end"><a href="@(Route("hotel.orders.show", o))" aria-label="Open @(o.OrderNo)"><i class="bi bi-chevron-right" style="color:var(--faint)"></i></a></td>
+              </tr>
+              </text>} } else {<text>
+              <tr><td colspan="8" style="color:var(--muted)">@(T("No orders yet. A purchase order is created when both parties have signed the contract."))</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_PgHotel.cshtml", With(new Dictionary<string, object?> { ["p"] = orders, ["noun"] = "orders" }))
+@* @endsection *@

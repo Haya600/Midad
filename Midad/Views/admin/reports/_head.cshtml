@@ -1,0 +1,26 @@
+@* Source: resources/views/admin/reports/_head.blade.php *@
+@{
+    int active = Get<int>("active");
+    DateTime from = Get<DateTime>("from");
+    DateTime to = Get<DateTime>("to");
+}
+@* Reports header: tabs (UC1-08 .tabs) + date range in the .bar (UC1-02). $active = requests|transactions *@
+        <div class="ph"><div><h1>@(T("Reports"))</h1><p>@(from.TranslatedFormat("j M Y")) – @(to.TranslatedFormat("j M Y"))</p></div>
+          <button class="btn btn-white" type="button" onclick="window.print()"><i class="bi bi-printer me-2"></i>@(T("Print"))</button></div>
+        <div class="tabs">
+          <a href="@(Route("admin.reports.requests", Req().Only("from", "to")))" class="@Css(("tab md-link", true), ("on", active == "requests"))">@(T("Supply requests"))</a>
+          <a href="@(Route("admin.reports.transactions", Req().Only("from", "to")))" class="@Css(("tab md-link", true), ("on", active == "transactions"))">@(T("Transactions"))</a>
+        </div>
+        <form class="bar" method="GET" action="@(UrlTo().Current())">
+          <label class="lbl m-0" for="from" style="white-space:nowrap">@(T("From"))</label>
+          <input id="from" type="date" name="from" value="@(from.ToDateString())" class="fld @Html.Raw((errors.Has("from")) ? $" fld-err " : "")" style="max-width:180px">
+          <label class="lbl m-0" for="to" style="white-space:nowrap">@(T("To"))</label>
+          <input id="to" type="date" name="to" value="@(to.ToDateString())" class="fld @Html.Raw((errors.Has("to")) ? $" fld-err " : "")" style="max-width:180px">
+          <button class="btn btn-primary btn-sm" type="submit">@(T("Apply"))</button>
+          @if (errors.Has("to")) { var message = errors.First("to"); <text><span class="err m-0">@(T(message))</span></text>}
+          <div class="ms-auto d-flex gap-2">
+            <a class="btn btn-white btn-sm" href="@(UrlTo().Current() + "?from=" + Php.Now().StartOfMonth().ToDateString() + "&to=" + Php.Now().ToDateString())">@(T("This month"))</a>
+            <a class="btn btn-white btn-sm" href="@(UrlTo().Current() + "?from=" + Php.Now().StartOfQuarter().ToDateString() + "&to=" + Php.Now().ToDateString())">@(T("This quarter"))</a>
+            <a class="btn btn-white btn-sm" href="@(UrlTo().Current())">@(T("This year"))</a>
+          </div>
+        </form>

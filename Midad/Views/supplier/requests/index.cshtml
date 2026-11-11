@@ -1,0 +1,81 @@
+@* Source: resources/views/supplier/requests/index.blade.php *@
+@{
+    Dictionary<string, int> catCounts = Get<Dictionary<string, int>>("catCounts");
+    Dictionary<string, int> cityCounts = Get<Dictionary<string, int>>("cityCounts");
+    Midad.Controllers.Supplier.RequestController.Filters f = Get<Midad.Controllers.Supplier.RequestController.Filters>("f");
+    string? key = Get<string?>("key");
+    int limit = Get<int>("limit");
+    int matchCount = Get<int>("matchCount");
+    Dictionary<int, Bid> myBids = Get<Dictionary<int, Bid>>("myBids");
+    int openCount = Get<int>("openCount");
+    Dictionary<string, int> prioCounts = Get<Dictionary<string, int>>("prioCounts");
+    List<SupplyRequest> requests = Get<List<SupplyRequest>>("requests");
+    int total = Get<int>("total");
+    dynamic val = ViewBag.val;
+}
+@* UC2-02 Browse requests - UI/03 lines 497-594. Filters are links that toggle a value; sort is a select. *@
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; }
+@{ ViewData["title"] = "Open supply requests"; }
+@{
+var toggle = function (string key, string val) use (f) {
+        set = f[key];
+        set = Php.InArray(val, set, true) ? Php.ArrayValues(Php.ArrayDiff(set, new[] { val })) : Php.ArrayMerge(set, new[] { val });
+        return Route("supplier.requests.index", Php.ArrayFilter(new Dictionary<string, object?> { ["cat"] = f["cat"], ["city"] = f["city"], ["prio"] = f["prio"], ["q"] = f["q"], ["sort"] = f["sort"] == "closing" ? null : f["sort"] } + new Dictionary<string, object?> { [key] = set ?? null }));
+    };
+}
+@* @section('content') = the Razor body *@
+    <div class="body-pad"><div class="wrap">
+      @await Html.PartialAsync("~/Views/Shared/_FlashSite.cshtml", With(new Dictionary<string, object?> {  }))
+      <div class="sect-head" style="margin-bottom:32px">
+        <div><h1 class="pg-h1">@(T("Open supply requests"))</h1><p class="pg-sub">@(T(openCount == 1 ? ":n request open for bidding · :m match your categories" : ":n requests open for bidding · :m match your categories", new Dictionary<string, object?> { ["n"] = openCount, ["m"] = matchCount }))</p></div>
+        <form class="d-flex align-items-center gap-3" method="GET" action="@(Route("supplier.requests.index"))">
+          @foreach (var (k, loop) in Php.Loop(new[] { "cat", "city", "prio" })) {<text>@foreach (var (v, _) in Php.Loop(f[k])) {<text><input type="hidden" name="@(k)[]" value="@(v)"></text>} </text>}
+          @if (Php.B(f["q"])) {<text><input type="hidden" name="q" value="@(f["q"])"></text>}
+          <label for="sort" style="font-size:14px;color:var(--muted);font-weight:500;white-space:nowrap">@(T("Sort by"))</label>
+          <div class="md-ico" style="width:100%;max-width:210px"><select id="sort" name="sort" class="fld" onchange="this.form.submit()">
+            <option value="closing" @Html.Raw((f["sort"] == "closing") ? "selected" : "")>@(T("Closing soonest"))</option>
+            <option value="newest" @Html.Raw((f["sort"] == "newest") ? "selected" : "")>@(T("Newest first"))</option>
+            <option value="bids" @Html.Raw((f["sort"] == "bids") ? "selected" : "")>@(T("Fewest bids"))</option>
+          </select><i class="md-ico-i bi bi-chevron-down" style="color:var(--muted)"></i></div>
+        </form>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-12 col-lg-3"><div class="filt">
+          <div class="fg">
+            <div class="ft">@(T("Category"))</div>
+            @foreach (var (c, loop) in Php.Loop(Config("midad.categories"))) {<text>
+            @{ var on = Php.InArray(c, f["cat"], true); }
+            <a href="@(toggle("cat", c))" class="fi md-link" aria-pressed="@(Php.B(on) ? "true" : "false")"><i class="@Css(("bi", true), ("bi-check-square-fill on", on), ("bi-square", ! on))"></i>@(T(c))<span class="n">@(catCounts[c] ?? 0)</span></a>
+            </text>}
+          </div>
+          <div class="fg">
+            <div class="ft">@(T("City"))</div>
+            @foreach (var ((city, n), loop) in Php.Loop(Php.Pairs(cityCounts))) {<text>
+            @{ on = Php.InArray(city, f["city"], true); }
+            <a href="@(toggle("city", city))" class="fi md-link" aria-pressed="@(Php.B(on) ? "true" : "false")"><i class="@Css(("bi", true), ("bi-check-square-fill on", on), ("bi-square", ! on))"></i>@(T(city))<span class="n">@(n)</span></a>
+            </text>}
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <div class="ft">@(T("Priority"))</div>
+            @foreach (var (p, loop) in Php.Loop(Config("midad.priorities"))) {<text>
+            @{ on = Php.InArray(p, f["prio"], true); }
+            <a href="@(toggle("prio", p))" class="fi md-link" aria-pressed="@(Php.B(on) ? "true" : "false")"><i class="@Css(("bi", true), ("bi-check-square-fill on", on), ("bi-square", ! on))"></i>@(T(p))<span class="n">@(prioCounts[p] ?? 0)</span></a>
+            </text>}
+          </div>
+        </div></div>
+
+        <div class="col-12 col-lg-9">
+          @if (Php.Any(requests)) { foreach (var (r, loop) in Php.Loop(requests)) {<text>
+            @await Html.PartialAsync("~/Views/supplier/partials/rq-card.cshtml", With(new Dictionary<string, object?> { ["r"] = r, ["feat"] = loop.First, ["myBid"] = myBids.Get(r.RequestId) }))
+          </text>} } else {<text>
+            <div class="lock">@(T("No open requests match these filters."))</div>
+          </text>}
+
+          @if (total > limit) {<text>
+          <div class="d-flex justify-content-center mt-4"><a class="btn b-line btn-lg" href="@(Req().FullUrlWithQuery(new Dictionary<string, object?> { ["limit"] = limit + 10 }))">@(T(Php.Min(10, total - limit) == 1 ? "Load :n more request" : "Load :n more requests", new Dictionary<string, object?> { ["n"] = Php.Min(10, total - limit) }))</a></div>
+          </text>}
+        </div>
+      </div>
+    </div></div>
+@* @endsection *@

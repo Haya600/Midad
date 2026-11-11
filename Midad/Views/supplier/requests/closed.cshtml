@@ -1,0 +1,71 @@
+@* Source: resources/views/supplier/requests/closed.blade.php *@
+@{
+    DateTime? awardedAt = Get<DateTime?>("awardedAt");
+    List<SupplyRequest> similar = Get<List<SupplyRequest>>("similar");
+    SupplyRequest sr = Get<SupplyRequest>("sr");
+    Midad.Controllers.Supplier.BidController.UnsavedBid? unsaved = Get<Midad.Controllers.Supplier.BidController.UnsavedBid?>("unsaved");
+}
+@* UC2-10 Request closed - UI/03 lines 1101-1155. Shown when the request stopped being Open while the bid was being written. *@
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; }
+@{ ViewData["title"] = sr.Code + " (closed)"; }
+@{
+var first = sr.Supplies.First();
+var t = sr.TotalQuantity();
+}
+@* @section('content') = the Razor body *@
+    <div class="body-pad"><div class="wrap">
+      <div class="crumb"><a href="@(Route("supplier.requests.index"))" class="md-link" style="color:inherit">@(T("Browse Requests"))</a> <span style="color:var(--faint)">/</span> <b>@(sr.Code)</b></div>
+      <div class="al a-dang mb-4">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div style="flex:1">
+          <div class="al-t">@(T("This request is no longer open for bidding"))</div>
+          <div class="al-b">@(T(sr.RequestStatus == "Awarded" ? ":hotel awarded :code to another supplier:at, while you were preparing your bid. Nothing was submitted and no charge was made." : ":hotel closed :code:at, while you were preparing your bid. Nothing was submitted and no charge was made.", new Dictionary<string, object?> { ["hotel"] = sr.Hotel.HotelName, ["code"] = sr.Code, ["at"] = awardedAt ? T(" at :time", new Dictionary<string, object?> { ["time"] = awardedAt.Format("H:i") }) : "" }))@if (Php.B(unsaved)) {<text> @(T("Your prices have been kept if you want to copy them to another request."))</text>}</div>
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            <a class="btn b-dang btn-sm" href="@(Route("supplier.requests.index"))"><i class="bi bi-search"></i>@(T("Browse other requests"))</a>
+            @if (Php.B(unsaved) && !Php.Empty(unsaved["unit_prices"])) {<text>
+            <form method="POST" action="@(Route("supplier.bids.copy-prices"))" class="m-0">@Html.AntiForgeryToken()<button class="btn b-line btn-sm" type="submit">@(T("Copy my prices"))</button></form>
+            </text>}
+          </div>
+        </div>
+      </div>
+      <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap" style="gap:24px">
+        <div class="d-flex gap-4">
+          @await Html.PartialAsync("~/Views/supplier/partials/thumb.cshtml", With(new Dictionary<string, object?> { ["s"] = first, ["style"] = "width:92px;height:92px;font-size:36px;opacity:.55" }))
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-3 flex-wrap"><span class="rq-no">@(sr.Code)</span>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = sr.RequestStatus }))@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = sr.Priority, ["priority"] = true }))</div>
+            <h1 class="pg-h1">@(sr.Title)</h1>
+            <p class="pg-sub">@(sr.Hotel.HotelName) · @(Php.B(t) ? Php.NumberFormat(t[0]) + " " + T(t[1]) : T(":n items", new Dictionary<string, object?> { ["n"] = sr.Supplies.Count() }))@if (Php.B(awardedAt)) {<text> · @(T("awarded :date", new Dictionary<string, object?> { ["date"] = awardedAt.TranslatedFormat("j M Y, H:i") }))</text>}</p>
+          </div>
+        </div>
+        <button class="btn b-off btn-lg" type="button" disabled><i class="bi bi-hammer"></i>@(T("Create bid"))</button>
+      </div>
+      <div class="lock mb-4"><i class="bi bi-lock-fill me-2"></i>@(T(sr.RequestStatus == "Awarded" ? "Bidding closed. This request was awarded to another supplier and no longer accepts bids." : "Bidding closed. This request is closed and no longer accepts bids."))</div>
+      <div class="row g-4">
+        <div class="col-12 col-lg-8">
+          @if (Php.B(unsaved)) {<text>
+          <div class="cd">
+            <div class="cd-h"><div class="cd-t">@(T("Your unsaved bid"))</div>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = "Not submitted" }))</div>
+            <div class="cd-p"><div class="row g-4">
+              <div class="col-12 col-md-4"><div class="k">@(T("Bid price you entered"))</div><div class="num" style="font-size:25px;font-weight:800;color:var(--muted);margin-top:6px">@(T("SAR")) @(Php.NumberFormat((decimal) unsaved["bid_price"], 2))</div></div>
+              <div class="col-12 col-md-4"><div class="k">@(T("Delivery you entered"))</div><div class="num" style="font-size:25px;font-weight:800;color:var(--muted);margin-top:6px">@(unsaved["estimated_delivery_days"]) @(T("days"))</div></div>
+              <div class="col-12 col-md-4"><div class="k">@(T("Status"))</div><div style="margin-top:10px">@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = "Discarded", ["label"] = "Discarded (request closed)" }))</div></div>
+            </div></div>
+          </div>
+          </text>}
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="cd cd-p">
+            <div class="cd-t mb-4">@(T("Similar open requests"))</div>
+            @if (Php.Any(similar)) { foreach (var (o, loop) in Php.Loop(similar)) {<text>
+            <a href="@(Route("supplier.requests.show", o))" class="md-link" style="color:inherit;display:flex;gap:13px;@Html.Raw((!(Php.B(loop.Last))) ? $"padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:16px " : "")">
+              @await Html.PartialAsync("~/Views/supplier/partials/thumb.cshtml", With(new Dictionary<string, object?> { ["s"] = o.Supplies.First(), ["style"] = "width:46px;height:46px;font-size:18px;border-radius:11px" }))
+              <div><div class="num" style="font-weight:700;font-size:14px">@(o.Code) · @(o.Hotel.HotelName)</div><div style="color:var(--muted);margin-top:3px;font-size:13.5px">@(o.Supplies.First()?.SupplyName) · @(o.QtyShort())</div></div>
+            </a>
+            </text>} } else {<text>
+            <div style="color:var(--muted);font-size:14px">@(T("No similar requests are open right now."))</div>
+            </text>}
+          </div>
+        </div>
+      </div>
+    </div></div>
+@* @endsection *@

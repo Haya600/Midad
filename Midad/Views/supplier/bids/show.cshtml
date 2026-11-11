@@ -1,0 +1,106 @@
+@* Source: resources/views/supplier/bids/show.blade.php *@
+@{
+    Bid? bid = Get<Bid?>("bid");
+    int others = Get<int>("others");
+    SupplyRequest sr = Get<SupplyRequest>("sr");
+}
+@* UC2-08 Bid submitted / your bid - UI/03 lines 940-985. Unit price and line total columns are omitted (§6.4: not stored). *@
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; }
+@{ ViewData["title"] = "Your bid on " + sr.Code; }
+@{
+var vat = bid.Vat();
+var arrival = bid.Contract?.AgreedDeliveryDate ?? bid.ExpectedArrival();
+var late = Php.B(arrival.Gt(sr.RequiredDeliveryDate)) ? (int) sr.RequiredDeliveryDate.DiffInDays(arrival) : 0;
+var contract = bid.Contract;
+}
+@* @section('content') = the Razor body *@
+    <div class="body-pad"><div class="wrap">
+      @await Html.PartialAsync("~/Views/Shared/_FlashSite.cshtml", With(new Dictionary<string, object?> {  }))
+      <div class="d-flex align-items-start justify-content-between mb-5 flex-wrap" style="gap:24px">
+        <div>
+          <div class="d-flex align-items-center gap-3 mb-3"><a href="@(Route("supplier.requests.show", sr))" class="rq-no md-link">@(sr.Code)</a>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = bid.BidStatus, ["icon"] = bid.BidStatus == "Accepted" ? "bi-check2" : null }))</div>
+          <h1 class="pg-h1">@(T("Your bid"))</h1>
+          <p class="pg-sub">@(sr.Hotel.HotelName) · @(T("submitted :date", new Dictionary<string, object?> { ["date"] = bid.CreatedAt.TranslatedFormat("j M Y, H:i") }))</p>
+        </div>
+        <div class="d-flex gap-2">
+          @if (Can("update", bid)) {<text>
+          <a class="btn b-line" href="@(Route("supplier.bids.edit", bid))"><i class="bi bi-pencil"></i>@(T("Update bid"))</a>
+          <button class="btn b-line" type="button" style="color:var(--dang)" data-md-open="#cancelBid"><i class="bi bi-x-lg"></i>@(T("Cancel bid"))</button>
+          </text>}
+          @if (Php.B(contract) && contract.ContractStatus == "Pending Signatures" && !Php.B(contract.SupplierSignedAt)) {<text>
+          <a class="btn b-olive" href="@(Shell.Url("supplier.contracts.show", contract))"><i class="bi bi-pen"></i>@(T("Sign contract"))</a>
+          </text>}
+        </div>
+      </div>
+      <div class="row g-4">
+        <div class="col-12 col-lg-8">
+          <div class="cd mb-4"><div class="cd-p"><div class="row g-4">
+            <div class="col-6 col-md-3"><div class="k">@(T("Bid price"))</div><div class="num" style="font-size:26px;font-weight:800;letter-spacing:-.025em;margin-top:6px">@(T("SAR")) @(Php.NumberFormat((decimal) bid.BidPrice))</div><div style="font-size:12.5px;color:var(--muted);margin-top:4px">@(T("Excluding VAT"))</div></div>
+            <div class="col-6 col-md-3"><div class="k">@(T("Total to hotel"))</div><div class="num" style="font-size:26px;font-weight:800;letter-spacing:-.025em;margin-top:6px">@(T("SAR")) @(Php.NumberFormat((decimal) bid.BidPrice + vat))</div><div style="font-size:12.5px;color:var(--muted);margin-top:4px">@(T("VAT SAR :amount", new Dictionary<string, object?> { ["amount"] = Php.NumberFormat(vat, 2) }))</div></div>
+            <div class="col-6 col-md-3"><div class="k">@(T("Estimated delivery"))</div><div class="num" style="font-size:26px;font-weight:800;letter-spacing:-.025em;margin-top:6px">@(bid.EstimatedDeliveryDays) @(T("days"))</div><div style="font-size:12.5px;color:var(--muted);margin-top:4px">@(T("From signature"))</div></div>
+            <div class="col-6 col-md-3"><div class="k">@(T("Expected arrival"))</div><div class="num" style="font-size:20px;font-weight:700;margin-top:8px;@Html.Raw((Php.B(late)) ? $"color:var(--warn)" : "")">@(arrival.TranslatedFormat("d M Y"))</div>@if (Php.B(late)) {<text><div class="wmsg" style="margin-top:6px">@(late) @(late == 1 ? T("day") : T("days")) @(T("late"))</div></text>} else {<text><div style="font-size:12.5px;color:var(--olive);font-weight:600;margin-top:6px"><i class="bi bi-check-circle-fill me-1"></i>@(T("Meets the date"))</div></text>}</div>
+          </div></div></div>
+          <div class="cd">
+            <div class="cd-h"><div class="cd-t">@(T("Items covered"))</div><span style="font-size:14px;color:var(--muted);font-weight:500">@(sr.ItemsSummary())</span></div>
+            <div class="md-table-scroll">
+            <table class="tb">
+              <thead><tr><th>#</th><th>@(T("Product"))</th><th class="text-end">@(T("Quantity"))</th></tr></thead>
+              <tbody>
+                @foreach (var (s, loop) in Php.Loop(sr.Supplies)) {<text>
+                <tr><td class="num" style="color:var(--faint)">@(loop.Iteration)</td><td style="font-weight:700">@(s.SupplyName)</td><td class="text-end num">@(Php.NumberFormat(s.Quantity)) @(s.UnitOfMeasure)</td></tr>
+                </text>}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="cd cd-p mb-3">
+            <div class="cd-t mb-4">@(T("Status"))</div>
+            <dl class="kv mb-0">
+              <dt>@(T("Bid status"))</dt><dd>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = bid.BidStatus }))</dd>
+              <dt>@(T("Submitted"))</dt><dd class="num">@(bid.CreatedAt.TranslatedFormat("j M Y, H:i"))</dd>
+              <dt>@(T("Competing bids"))</dt><dd class="num">@(T(others == 1 ? ":n other" : ":n others", new Dictionary<string, object?> { ["n"] = others }))</dd>
+              <dt>@(T("Request status"))</dt><dd style="margin-bottom:0">@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = sr.RequestStatus }))</dd>
+            </dl>
+          </div>
+          @switch (bid.BidStatus) {
+            case "Submitted":<text>
+              <div class="al a-info"><i class="bi bi-clock-fill"></i><div><div class="al-t">@(T("Waiting on the hotel"))</div><div class="al-b">@(T("Hotels usually decide within 3 working days of the bid deadline."))</div></div></div>
+              </text>break;
+            case "Accepted":<text>
+              <div class="al a-ok"><i class="bi bi-trophy-fill"></i><div><div class="al-t">@(T("You won this request"))</div><div class="al-b">@(T("A contract has been generated for both parties to sign."))</div></div></div>
+              </text>break;
+            case "Rejected":<text>
+              <div class="al a-dang"><i class="bi bi-x-circle-fill"></i><div><div class="al-t">@(T("The hotel did not choose this bid"))</div><div class="al-b">@(T(sr.RequestStatus == "Awarded" || sr.RequestStatus == "Closed" ? "Another bid was accepted for this request." : "You can bid again while the request is open."))</div></div></div>
+              </text>break;
+            default:<text>
+              <div class="al a-info"><i class="bi bi-info-circle-fill"></i><div><div class="al-t">@(T("You withdrew this bid"))</div><div class="al-b">@(T("You can place a new bid while the request is still open."))</div></div></div>
+          </text>break; }
+        </div>
+      </div>
+    </div></div>
+@* @endsection *@
+
+@{ Push("modals", @<text>
+@if (Can("cancel", bid)) {<text>
+<div class="md-modal" id="cancelBid" hidden role="dialog" aria-modal="true" aria-labelledby="cancelBidT" @Html.Raw((Php.B(Req("cancel"))) ? $" data-md-autoshow " : "")>
+    <div class="scrim"><form class="mdl" method="POST" action="@(Route("supplier.bids.cancel", bid))">
+      @Html.AntiForgeryToken()
+      <div class="mdl-h"><div class="mdl-t" id="cancelBidT">@(T("Cancel this bid?"))</div></div>
+      <div class="mdl-b">
+        <p style="margin:0 0 20px;">@Html.Raw(T("Your bid on :code is withdrawn and :hotel no longer sees it.", new Dictionary<string, object?> { ["code"] = "<b>" + Php.E(sr.Code) + "</b>", ["hotel"] = "<b>" + Php.E(sr.Hotel.HotelName) + "</b>" }))</p>
+        <div class="box">
+          <div class="br mb-3"><span style="color:var(--muted)">@(T("Bid price"))</span><span class="num" style="font-weight:800;font-size:16px">@(T("SAR")) @(Php.NumberFormat((decimal) bid.BidPrice, 2))</span></div>
+          <div class="br"><span style="color:var(--muted)">@(T("Delivery"))</span><span class="num">@(bid.EstimatedDeliveryDays) @(T("days"))</span></div>
+        </div>
+        <p style="margin:20px 0 0;font-size:13.5px;color:var(--muted)">@(T("You can place a new bid while the request is still open."))</p>
+      </div>
+      <div class="mdl-f">
+        <button class="btn b-line" type="button" data-md-close>@(T("Keep bid"))</button>
+        <button class="btn b-dang" type="submit"><i class="bi bi-x-lg"></i>@(T("Cancel bid"))</button>
+      </div>
+    </form></div>
+</div>
+</text>}
+</text>); }
