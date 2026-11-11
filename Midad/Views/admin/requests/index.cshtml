@@ -1,0 +1,29 @@
+
+@{
+    Paginator<SupplyRequest> requests = Get<Paginator<SupplyRequest>>("requests");
+    int total = Get<int>("total");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Supply Requests"; }
+@section crumb {<text><b>@(T("Supply Requests"))</b></text>}
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph"><div><h1>@(T("Supply Requests"))</h1><p>@(T(":n requests from all hotels", new Dictionary<string, object?> { ["n"] = total }))</p></div></div>
+        @await Html.PartialAsync("~/Views/hotel/partials/bar.cshtml", With(new Dictionary<string, object?> { ["statuses"] = new[] { "Draft", "Open", "Awarded", "Closed", "Cancelled" }, ["search"] = "Search requests, products or hotels" }))
+        <div class="card-m">
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Request"))</th><th>@(T("Hotel"))</th><th>@(T("Product"))</th><th class="text-end">@(T("Qty"))</th><th>@(T("Needed by"))</th><th>@(T("Priority"))</th><th class="text-end">@(T("Bids"))</th><th>@(T("Status"))</th><th></th></tr></thead>
+            <tbody>
+              @if (Php.Any(requests)) { foreach (var r in requests) {<text>
+              <tr data-href="@(Route("admin.requests.show", r))"><td class="num" style="font-weight:500">@(r.Code)</td><td>@(r.Hotel.HotelName)</td><td>@await Html.PartialAsync("~/Views/hotel/requests/_product.cshtml", With(new Dictionary<string, object?> { ["r"] = r }))</td><td class="text-end num">@(r.QtyShort())</td><td class="num">@(r.RequiredDeliveryDate.TranslatedFormat("d M Y"))</td><td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = r.Priority, ["priority"] = true }))</td><td class="text-end num">@(r.Bids.Count)</td><td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = r.RequestStatus }))</td><td class="text-end"><a href="@(Route("admin.requests.show", r))" aria-label="Open @(r.Code)"><i class="bi bi-chevron-right" style="color:var(--faint)"></i></a></td></tr>
+              </text>} } else {<text>
+              <tr><td colspan="9" style="color:var(--muted)">@(T("No requests match these filters."))</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_PgHotel.cshtml", With(new Dictionary<string, object?> { ["p"] = requests, ["noun"] = "requests" }))
+

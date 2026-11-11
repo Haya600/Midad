@@ -1,0 +1,48 @@
+
+@{
+    Dictionary<int, int> dist = Get<Dictionary<int, int>>("dist");
+    List<Rating> ratings = Get<List<Rating>>("ratings");
+    Supplier? supplier = Get<Supplier?>("supplier");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; }
+@{ ViewData["title"] = "Ratings"; }
+
+    <div class="body-pad"><div class="wrap">
+      <div class="sect-head" style="margin-bottom:32px">
+        <div><h1 class="pg-h1">@(T("Your ratings"))</h1><p class="pg-sub">@(T(ratings.Count() == 1 ? ":avg average · :n rating from hotels" : ":avg average · :n ratings from hotels", new Dictionary<string, object?> { ["avg"] = Php.NumberFormat((decimal) supplier.AvgRating, 1), ["n"] = ratings.Count() }))</p></div>
+      </div>
+      <div class="row g-4">
+        <div class="col-12 col-lg-8">
+          @if (Php.Any(ratings)) { foreach (var (r, loop) in Php.Loop(ratings)) {<text>
+          @{ var sr = r.Order.Contract.Bid.Request; }
+          <article class="rq">
+            @await Html.PartialAsync("~/Views/supplier/partials/thumb.cshtml", With(new Dictionary<string, object?> { ["s"] = sr.Supplies.First() }))
+            <div class="rq-b">
+              <div class="rq-top"><span class="rq-no">@(r.Order.OrderNo)</span><span class="rq-hotel">@(r.Hotel.HotelName) · @(T(r.Hotel.City))</span></div>
+              <h3 class="rq-h" style="color:var(--warn)">@for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= r.StarRating ? "bi-star-fill" : "bi-star")"></i></text>}</h3>
+              <div class="rq-s">@(r.ReviewComment ?? T("No comment."))</div>
+              <div class="rq-f">
+                <span class="mt"><i class="bi bi-box-seam"></i>@(sr.Title)</span>
+                <span class="mt"><i class="bi bi-calendar-check"></i>@(T("Rated")) <b>@(r.CreatedAt.TranslatedFormat("d M Y"))</b></span>
+              </div>
+            </div>
+          </article>
+          </text>} } else {<text>
+          <div class="lock">@(T("No ratings yet. Hotels rate you after an order is completed."))</div>
+          </text>}
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="cd cd-p" style="background:var(--olive-pale);border-color:#AECFC0">
+            <div class="cd-t mb-4">@(T("Overall rating"))</div>
+            <div class="num" style="font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1"><span style="color:var(--warn);font-size:30px"><i class="bi bi-star-fill"></i></span> @(Php.NumberFormat((decimal) supplier.AvgRating, 1))</div>
+            <dl class="kv mb-0 mt-4">
+              @foreach (var ((stars, n), loop) in Php.Loop(Php.Pairs(dist))) {<text>
+              <dt>@(T(stars == 1 ? ":n star" : ":n stars", new Dictionary<string, object?> { ["n"] = stars }))</dt><dd class="num" @Html.Raw((Php.B(loop.Last)) ? $" style=\"margin-bottom:0\" " : "")>@(n)</dd>
+              </text>}
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div></div>
+

@@ -1,0 +1,14 @@
+
+
+@{ Layout = "~/Views/auth/card.cshtml"; }
+@{ ViewData["title"] = "Choose a new password"; }
+@section card {<text>
+      <h1>@(T("Choose a new password"))</h1>
+      <p class="sub">@(T("Remembered it?")) <a href="@(Route("login"))" class="md-link" style="color:var(--olive);font-weight:600">@(T("Log in"))</a></p>
+      <form method="POST" action="@(Req().FullUrl())">
+        @Html.AntiForgeryToken()
+        @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "fgrp", ["name"] = "password", ["label"] = "New password", ["type"] = "password", ["placeholder"] = "••••••••", ["hint"] = "At least 8 characters, one number", ["required"] = true, ["minlength"] = "8", ["pattern"] = "^(?=.*[A-Za-z])(?=.*\d).{8,}$", ["title"] = $"{Php.E(T("At least 8 characters, one number"))}", ["autocomplete"] = "new-password", ["autofocus"] = true }))
+        @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "fgrp", ["name"] = "password_confirmation", ["label"] = "Confirm password", ["type"] = "password", ["placeholder"] = "••••••••", ["required"] = true, ["minlength"] = "8", ["autocomplete"] = "new-password" }))
+        <button class="btn b-olive btn-lg b-full" type="submit">@(T("Change password"))</button>
+      </form>
+</text>}

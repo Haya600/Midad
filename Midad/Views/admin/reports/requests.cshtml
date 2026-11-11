@@ -1,0 +1,56 @@
+
+@{
+    double avgBids = Get<double>("avgBids");
+    int awardRate = Get<int>("awardRate");
+    List<Midad.Controllers.Admin.ReportController.CategoryRow> byCategory = Get<List<Midad.Controllers.Admin.ReportController.CategoryRow>>("byCategory");
+    Dictionary<string, int> byStatus = Get<Dictionary<string, int>>("byStatus");
+    int total = Get<int>("total");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Supply-request report"; }
+@section crumb {<text>Reports <span style="color:var(--faint)">/</span> <b>@(T("Supply requests"))</b></text>}
+
+        @await Html.PartialAsync("~/Views/admin/reports/_head.cshtml", With(new Dictionary<string, object?> { ["active"] = "requests" }))
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Requests"))</div><div class="stat-v">@(total)</div><div class="stat-d">@(T("Created in this period"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Open now"))</div><div class="stat-v">@(byStatus["Open"])</div><div class="stat-d">@(T("Accepting bids"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Award rate"))</div><div class="stat-v">@(awardRate)%</div><div class="stat-d">@(T("Published requests awarded"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Bids per request"))</div><div class="stat-v">@(avgBids)</div><div class="stat-d">@(T("Average, requests with bids"))</div></div></div>
+        </div>
+        <div class="row g-4">
+          <div class="col-12 col-lg-6">
+            <div class="card-m">
+              <div class="card-h"><div class="card-t">@(T("By status"))</div></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>@(T("Status"))</th><th class="text-end">@(T("Requests"))</th><th class="text-end">@(T("Share"))</th></tr></thead>
+                <tbody>
+                  @foreach (var (s, n) in Php.Pairs(byStatus)) {<text>
+                  <tr><td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = s }))</td><td class="text-end num">@(n)</td><td class="text-end num">@(Php.B(total) ? Php.Round(100 * n / total) : 0)%</td></tr>
+                  </text>}
+                  <tr><td style="font-weight:500">@(T("Total"))</td><td class="text-end num" style="font-weight:500">@(total)</td><td class="text-end num">100%</td></tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="card-m">
+              <div class="card-h"><div class="card-t">@(T("By category"))</div></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>@(T("Category"))</th><th class="text-end">@(T("Requests"))</th><th class="text-end">@(T("Units requested"))</th></tr></thead>
+                <tbody>
+                  @if (Php.Any(byCategory)) { foreach (var c in byCategory) {<text>
+                  <tr><td>@(c.Category)</td><td class="text-end num">@(c.Requests)</td><td class="text-end num">@(Php.NumberFormat((int) c.Qty))</td></tr>
+                  </text>} } else {<text>
+                  <tr><td colspan="3" style="color:var(--muted)">@(T("No requests in this period."))</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </div>
+        </div>
+

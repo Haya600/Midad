@@ -1,0 +1,6 @@
+
+
+@if (Php.B(f = Session("flash"))) {<text>
+  @{ var (tone, title, body) = f + new[] { null, null, null }; }
+        <div class="al al-@(tone) mb-4"><i class="bi @(new Dictionary<string, object ? > { ["ok"] = "bi-check-circle-fill", ["dan"] = "bi-exclamation-triangle-fill", ["warn"] = "bi-exclamation-circle-fill", ["info"] = "bi-info-circle-fill" }[tone] ?? "bi-info-circle-fill")"></i><div><div class="al-t">@(T(title))</div>@if (Php.B(body)) {<text><div class="al-b">@(T(body))</div></text>}</div></div>
+</text>}

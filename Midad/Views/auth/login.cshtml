@@ -1,0 +1,32 @@
+
+
+@{ Layout = "~/Views/auth/card.cshtml"; }
+@{ ViewData["title"] = "Log in"; }
+@section card {<text>
+  @{ var failed = Session("login_failed"); }
+      <h1>@(T("Log in"))</h1>
+      <p class="sub">@(T("New to Midad?")) <a href="@(Route("register"))" class="md-link" style="color:var(--olive);font-weight:600">@(T("Create an account"))</a></p>
+      @if (Php.B(failed)) {<text>
+      <div class="al a-dang mb-4"><i class="bi bi-exclamation-circle-fill"></i><div><div class="al-t">@(T("Email or password is incorrect"))</div><div class="al-b">@(T("Check both and try again. After 5 failed attempts the account is locked for 15 minutes."))</div></div></div>
+      </text>} else if (Php.B(Session("status"))) {<text>
+      <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill"></i><div><div class="al-t">@(T(Session("status")))</div></div></div>
+      </text>}
+      <form method="POST" action="@(Route("login.attempt"))">
+        @Html.AntiForgeryToken()
+        @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "fgrp", ["name"] = "email", ["label"] = "Email address", ["type"] = "email", ["placeholder"] = $"{Php.E(T("you@company.com"))}", ["star"] = false, ["required"] = true, ["autocomplete"] = "email", ["autofocus"] = true, ["input-class"] = failed ? "fld-err" : "" }))
+        @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["col"] = "fgrp", ["name"] = "password", ["label"] = "Password", ["type"] = "password", ["placeholder"] = "••••••••", ["star"] = false, ["required"] = true, ["autocomplete"] = "current-password" }))
+        <div class="d-flex align-items-center justify-content-between mb-4 gap-2 flex-wrap">
+          <label style="font-size:14px;color:var(--ink-2)"><input type="checkbox" name="remember" value="1" class="md-cb" @Html.Raw((Old("remember")) ? "checked" : "")><i class="bi bi-square me-2" style="color:var(--line-2)"></i><i class="bi bi-check-square-fill me-2" style="color:var(--olive)"></i>@(T("Keep me signed in"))</label>
+          <a href="@(Route("password.request"))" class="md-link" style="font-size:14px;color:var(--olive);font-weight:600">@(T("Forgot password?"))</a>
+        </div>
+        <button class="btn b-olive btn-lg b-full" type="submit">@(T("Log in"))</button>
+      </form>
+      @if (!(Php.B(failed))) {<text>
+      <div class="d-flex align-items-center gap-3 my-4"><div style="flex:1;height:1px;background:var(--line)"></div><span style="font-size:13px;color:var(--faint)">@(T("or"))</span><div style="flex:1;height:1px;background:var(--line)"></div></div>
+      @if (Php.B(Config("midad.nafath_simulation"))) {<text>
+      <a class="btn b-line btn-lg b-full" href="@(Route("login.nafath"))"><i class="bi bi-shield-check"></i>@(T("Continue with Nafath"))</a>
+      </text>} else {<text>
+      <button class="btn b-line btn-lg b-full" type="button" title="@(T("Coming soon"))"><i class="bi bi-shield-check"></i>@(T("Continue with Nafath"))</button>
+      </text>}
+      </text>}
+</text>}

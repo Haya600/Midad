@@ -1,0 +1,48 @@
+
+@{
+    RefundRequest refund = Get<RefundRequest>("refund");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Refund RF-" + refund.RefundId; }
+@section crumb {<text><a href="@(Route("hotel.refunds.index"))" class="md-link" style="color:inherit">@(T("Refunds"))</a> <span style="color:var(--faint)">/</span> <b>RF-@(refund.RefundId)</b></text>}
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-1"><h1>RF-@(refund.RefundId)</h1>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = refund.RefundStatus }))</div>
+            <p>@(T("Requested :date", new Dictionary<string, object?> { ["date"] = refund.RequestedAt.TranslatedFormat("j M Y, H:i") })) · @(T("order :no", new Dictionary<string, object?> { ["no"] = refund.Order.OrderNo }))</p>
+          </div>
+        </div>
+        <div class="row g-4">
+          <div class="col-12 col-lg-8">
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Reason"))</div></div>
+              <div class="card-p" style="font-size:14px;white-space:pre-line">@(refund.Reason)</div>
+            </div>
+            @if (Php.B(refund.EvidenceSrc)) {<text>
+            <div class="card-m">
+              <div class="card-h"><div class="card-t">@(T("Evidence photo"))</div></div>
+              <div class="card-p"><a href="@(refund.EvidenceSrc)" target="_blank" rel="noopener"><img src="@(refund.EvidenceSrc)" alt="Evidence for refund RF-@(refund.RefundId)" style="width:100%;max-width:520px;height:auto;border-radius:8px;border:1px solid var(--border)"></a></div>
+            </div>
+            </text>}
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="card-m card-p mb-3">
+              <div class="card-t mb-3">@(T("Refund details"))</div>
+              <dl class="kv mb-0">
+                <dt>@(T("Status"))</dt><dd>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = refund.RefundStatus }))</dd>
+                <dt>@(T("Amount requested"))</dt><dd class="num">@(T("SAR")) @(Php.NumberFormat((decimal) refund.RequestedAmount, 2))</dd>
+                <dt>@(T("Supplier"))</dt><dd>@(refund.Order.Contract.Bid.Supplier.CompanyName)</dd>
+                <dt>@(T("Order"))</dt><dd class="num"><a href="@(Route("hotel.orders.show", refund.Order))" class="md-link" style="color:var(--primary-dark)">@(refund.Order.OrderNo)</a></dd>
+                <dt>@(T("Reviewed"))</dt><dd class="num" style="margin-bottom:0">@(Php.B(refund.VerifiedAt) ? refund.VerifiedAt.TranslatedFormat("j M Y, H:i") : "Waiting for review")</dd>
+              </dl>
+            </div>
+            @switch (refund.RefundStatus) {
+              case "Approved":<text><div class="al al-ok"><i class="bi bi-check-circle-fill"></i><div><div class="al-t">@(T("Refund approved"))</div><div class="al-b">@(T("SAR :amount is returned to the card used for the payment.", new Dictionary<string, object?> { ["amount"] = Php.NumberFormat((decimal) refund.RequestedAmount, 2) }))</div></div></div></text>break;
+              case "Rejected":<text><div class="al al-dan"><i class="bi bi-x-circle-fill"></i><div><div class="al-t">@(T("Refund rejected"))</div><div class="al-b">@(T("The reason was sent to you by email. Contact support if you need more help."))</div></div></div></text>break;
+              default:<text><div class="al al-info"><i class="bi bi-hourglass-split"></i><div><div class="al-t">@(T("Waiting for review"))</div><div class="al-b">@(T("A Midad administrator reviews refund requests, usually within two working days."))</div></div></div>
+            </text>break; }
+          </div>
+        </div>
+

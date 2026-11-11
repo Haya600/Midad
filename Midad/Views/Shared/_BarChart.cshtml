@@ -1,0 +1,114 @@
+
+@{
+    Supply? s = Get<Supply?>("s");
+}
+
+
+@{ Props(new Dictionary<string, object?> { ["0"] = "title", ["sub"] = null, ["points"] = new List<object?>(), ["empty"] = null, ["money"] = true }); dynamic title = ViewBag.title; dynamic sub = ViewBag.sub; dynamic points = ViewBag.points; dynamic empty = ViewBag.empty; dynamic money = ViewBag.money; }
+@{
+dynamic mag = null;
+dynamic top = null;
+var values = Php.ArrayMap( (p) => (decimal) p["value"], points);
+var max = Php.B(values) ? Php.Max(values) : 0;
+
+    $top = 1
+if (max > 0)
+{
+mag = 10 ** Php.Floor(Php.Log10(max / 4));
+foreach (var s in new[] { 1, 2, 2.5, 5, 10 })
+{
+if (s * mag * 4 >= max)
+{
+top = s * mag * 4;
+break;
+}
+}
+}
+var ticks = Php.ArrayMap( (i) => top * i / 4, Php.Range(0, 4));
+var compact =  (v) => v >= 1000000 ? Php.Rtrim(Php.Rtrim(Php.NumberFormat(v / 1000000, 1), "0"), ".") + "M"
+        : (v >= 1000 ? Php.Rtrim(Php.Rtrim(Php.NumberFormat(v / 1000, 1), "0"), ".") + "K" : Php.NumberFormat(v));
+var full = Php.B((v) => money) ? T("SAR :amount", new Dictionary<string, object?> { ["amount"] = Php.NumberFormat(v, 2) }) : Php.NumberFormat(v);
+var peak = max > 0 ? Php.ArraySearch(max, values, true) : null;
+}
+<div class="card-m mb-4">
+  <div class="card-h"><div class="card-t">@(T(title))</div>@if (Php.B(sub)) {<text><span style="font-size:13px;color:var(--muted)">@(T(sub))</span></text>}</div>
+  <div class="card-p">
+    <div class="md-chart" role="img" aria-label="@(T(title)): @(Php.Collect(points).Map( (p) => p["full"] + " " + full((decimal) p["value"])).Implode(", "))">
+      <div class="md-chart-plot">
+        @foreach (var t in ticks) {<text>
+          <div class="md-chart-grid" style="bottom:@(t / top * 100)%"><span class="md-chart-tick num">@(compact(t))</span></div>
+        </text>}
+        <div class="md-chart-cols">
+          @foreach (var (i, p) in Php.Pairs(points)) {<text>
+            @{ var v = (decimal) p["value"]; }
+            <div class="md-chart-col" tabindex="0" data-tip-value="@(full(v))" data-tip-label="@(p["full"])" aria-label="@(p["full"]): @(full(v))">
+              <div class="md-chart-bar" style="height:@(Php.B(top) ? v / top * 100 : 0)%">
+                @if (i == peak) {<text><span class="md-chart-val num">@(Php.B(money) ? compact(v) : Php.NumberFormat(v))</span></text>}
+              </div>
+            </div>
+          </text>}
+        </div>
+        <div class="md-chart-tip" hidden><strong class="num"></strong><span></span></div>
+      </div>
+      <div class="md-chart-x">
+        @foreach (var p in points) {<text><span>@(p["label"])</span></text>}
+      </div>
+      @if (max == 0 && Php.B(empty)) {<text><div class="help text-center mt-2">@(T(empty))</div></text>}
+    </div>
+    <details class="md-chart-table mt-3">
+      <summary>@(T("View as table"))</summary>
+      <div class="md-table-scroll mt-2">
+      <table class="tbl">
+        <thead><tr><th>@(T("Month"))</th><th class="text-end">@(T(title))</th></tr></thead>
+        <tbody>@foreach (var p in points) {<text><tr><td>@(p["full"])</td><td class="text-end num">@(full((decimal) p["value"]))</td></tr></text>}</tbody>
+      </table>
+      </div>
+    </details>
+  </div>
+</div>
+
+@if (Once("components.bar-chart")) {<text>
+@{ Push("head", @<text>
+<style>
+.md-chart{--md-chart-h:220px;position:relative}
+.md-chart-plot{position:relative;height:var(--md-chart-h);margin-inline-start:44px}
+.md-chart-grid{position:absolute;inset-inline:0;height:0;border-top:1px solid var(--border)}
+.md-chart-tick{position:absolute;inset-inline-end:calc(100% + 8px);top:-8px;font-size:11px;line-height:16px;color:var(--muted);white-space:nowrap}
+.md-chart-cols{position:absolute;inset:0;display:flex;align-items:flex-end}
+.md-chart-col{flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;cursor:default;outline:0}
+.md-chart-col:focus-visible{box-shadow:inset 0 0 0 2px var(--primary);border-radius:6px}
+.md-chart-col:hover .md-chart-bar,.md-chart-col:focus-visible .md-chart-bar{filter:brightness(1.12)}
+.md-chart-bar{position:relative;width:100%;max-width:24px;min-height:0;background:var(--accent);border-radius:4px 4px 0 0}
+.md-chart-val{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap}
+.md-chart-x{display:flex;margin-inline-start:44px;margin-top:8px}
+.md-chart-x span{flex:1;text-align:center;font-size:12px;color:var(--muted)}
+.md-chart-tip{position:absolute;z-index:5;pointer-events:none;transform:translate(-50%,calc(-100% - 10px));background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 14px rgba(43,38,32,.12);padding:7px 10px;font-size:12.5px;white-space:nowrap;display:flex;flex-direction:column;gap:1px}
+.md-chart-tip[hidden]{display:none}
+.md-chart-tip span{color:var(--muted)}
+.md-chart-table summary{font-size:13px;color:var(--primary-dark);font-weight:500;cursor:pointer}
+@@media print{.md-chart-tip{display:none}}
+</style>
+</text>); }
+@{ Push("scripts", @<text>
+<script>
+document.querySelectorAll('.md-chart').forEach(function (chart) {
+  var plot = chart.querySelector('.md-chart-plot'), tip = chart.querySelector('.md-chart-tip');
+  function show(col) {
+    var bar = col.querySelector('.md-chart-bar'), p = plot.getBoundingClientRect(), b = bar.getBoundingClientRect(), c = col.getBoundingClientRect();
+    tip.querySelector('strong').textContent = col.dataset.tipValue;
+    tip.querySelector('span').textContent = col.dataset.tipLabel;
+    tip.hidden = false;
+    var x = c.left + c.width / 2 - p.left, half = tip.offsetWidth / 2;
+    tip.style.left = Math.min(Math.max(x, half), p.width - half) + 'px';
+    tip.style.top = (Math.min(b.top, p.bottom - 4) - p.top) + 'px';
+  }
+  chart.querySelectorAll('.md-chart-col').forEach(function (col) {
+    col.addEventListener('pointerenter', function () { show(col); });
+    col.addEventListener('focus', function () { show(col); });
+    col.addEventListener('pointerleave', function () { tip.hidden = true; });
+    col.addEventListener('blur', function () { tip.hidden = true; });
+  });
+});
+</script>
+</text>); }
+</text>}

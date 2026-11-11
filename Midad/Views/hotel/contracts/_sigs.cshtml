@@ -1,0 +1,6 @@
+
+@{
+    dynamic c = ViewBag.c;
+}
+<span style="white-space:nowrap">@if (Php.B(c.HotelSignedAt)) {<text><i class="bi bi-check-circle-fill" style="color:var(--ok)"></i></text>} else {<text><i class="bi bi-circle" style="color:var(--faint)"></i></text>} @(T("Hotel"))</span>
+<span style="white-space:nowrap;margin-left:10px">@if (Php.B(c.SupplierSignedAt)) {<text><i class="bi bi-check-circle-fill" style="color:var(--ok)"></i></text>} else {<text><i class="bi bi-circle" style="color:var(--faint)"></i></text>} @(T("Supplier"))</span>

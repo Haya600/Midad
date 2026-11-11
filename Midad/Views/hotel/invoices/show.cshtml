@@ -1,0 +1,102 @@
+
+@{
+    Invoice invoice = Get<Invoice>("invoice");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = invoice.InvoiceNo; }
+@section crumb {<text><a href="@(Route("hotel.invoices.index"))" class="md-link" style="color:inherit">@(T("Invoices"))</a> <span style="color:var(--faint)">/</span> <b>@(invoice.InvoiceNo)</b></text>}
+@{ var order = invoice.Order; }
+@{ var bid = order.Contract.Bid; }
+@{ var sr = bid.Request; }
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-1 flex-wrap"><h1>@(invoice.InvoiceNo)</h1>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = invoice.InvoiceStatus }))</div>
+            <p>@(T("Issued :date", new Dictionary<string, object?> { ["date"] = invoice.IssueDate.TranslatedFormat("j M Y") })) · @(T("order :no", new Dictionary<string, object?> { ["no"] = order.OrderNo })) · @(bid.Supplier.CompanyName)</p>
+          </div>
+          @if (Can("pay", invoice)) {<text>
+          <button class="btn btn-primary btn-lg" type="button" data-md-open="#payInvoice"><i class="bi bi-credit-card me-2"></i>@(T("Pay SAR :amount", new Dictionary<string, object?> { ["amount"] = Php.NumberFormat((decimal) invoice.TotalAmount, 2) }))</button>
+          </text>}
+        </div>
+
+        <div class="row g-4">
+          <div class="col-12 col-lg-8">
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Invoice lines"))</div><span style="font-size:13px;color:var(--muted)">@(sr.Code) · @(sr.ItemsSummary())</span></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>#</th><th>@(T("Product"))</th><th class="text-end">@(T("Quantity"))</th></tr></thead>
+                <tbody>
+                  @foreach (var (s, loop) in Php.Loop(sr.Supplies)) {<text>
+                  <tr><td class="num" style="color:var(--muted)">@(loop.Iteration)</td><td style="font-weight:500">@(s.SupplyName)</td><td class="text-end num">@(Php.NumberFormat(s.Quantity)) @(s.UnitOfMeasure)</td></tr>
+                  </text>}
+                  <tr><td></td><td style="color:var(--muted)">@(T("Subtotal (contract value)"))</td><td class="text-end num">@(T("SAR")) @(Php.NumberFormat((decimal) invoice.SubtotalAmount, 2))</td></tr>
+                  <tr><td></td><td style="color:var(--muted)">@(T("VAT at 15%"))</td><td class="text-end num">@(T("SAR")) @(Php.NumberFormat((decimal) invoice.VatAmount, 2))</td></tr>
+                  <tr><td></td><td style="font-weight:500">@(T("Total"))</td><td class="text-end num" style="font-weight:700">@(T("SAR")) @(Php.NumberFormat((decimal) invoice.TotalAmount, 2))</td></tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+            <div class="card-m">
+              <div class="card-h"><div class="card-t">@(T("Payments"))</div></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>@(T("Date"))</th><th>@(T("Method"))</th><th>@(T("Card"))</th><th>@(T("Card holder"))</th><th class="text-end">@(T("Amount"))</th><th>@(T("Status"))</th></tr></thead>
+                <tbody>
+                  @if (Php.Any(invoice.Payments.SortByDesc("paid_at"))) { foreach (var (p, loop) in Php.Loop(invoice.Payments.SortByDesc("paid_at"))) {<text>
+                  <tr><td class="num">@(p.PaidAt.TranslatedFormat("j M Y, H:i"))</td><td>@(T(p.PaymentMethod))</td><td class="num">@(p.CardNumber)</td><td>@(p.CardHolderName)</td><td class="text-end num">@(T("SAR")) @(Php.NumberFormat((decimal) p.Amount, 2))</td><td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = p.PaymentStatus }))</td></tr>
+                  </text>} } else {<text>
+                  <tr><td colspan="6" style="color:var(--muted)">@(T("No payments yet."))</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="card-m card-p mb-3">
+              <div class="card-t mb-3">@(T("Summary"))</div>
+              <dl class="kv mb-0">
+                <dt>@(T("Subtotal"))</dt><dd class="num">@(T("SAR")) @(Php.NumberFormat((decimal) invoice.SubtotalAmount, 2))</dd>
+                <dt>@(T("VAT at 15%"))</dt><dd class="num">@(T("SAR")) @(Php.NumberFormat((decimal) invoice.VatAmount, 2))</dd>
+                <dt>@(T("Total"))</dt><dd class="num" style="font-size:18px;font-weight:700">@(T("SAR")) @(Php.NumberFormat((decimal) invoice.TotalAmount, 2))</dd>
+                @if (invoice.RefundedAmount() > 0) {<text><dt>@(T("Refunded"))</dt><dd class="num">@(T("SAR")) @(Php.NumberFormat(invoice.RefundedAmount(), 2))</dd></text>}
+                <dt>@(T("Order"))</dt><dd class="num" style="margin-bottom:0"><a href="@(Route("hotel.orders.show", order))" class="md-link" style="color:var(--primary-dark)">@(order.OrderNo)</a></dd>
+              </dl>
+            </div>
+            <div class="al al-info"><i class="bi bi-shield-lock-fill"></i><div><div class="al-t">@(T("Card payments are secure"))</div><div class="al-b">@(T("Midad stores only the last four digits of your card. The CVV is never stored."))</div></div></div>
+          </div>
+        </div>
+
+
+@{ Push("modals", @<text>
+@if (Can("pay", invoice)) {<text>
+<div class="md-modal" id="payInvoice" hidden role="dialog" aria-modal="true" aria-labelledby="payInvoiceT" @Html.Raw((Php.B(errors.HasAny(new[] { "payment_method", "card_holder_name", "card_number", "card_expiry_date", "cvv" }))) ? $" data-md-autoshow " : "")>
+      <div class="scrim">
+        <form class="mdl" method="POST" action="@(Route("hotel.invoices.pay", invoice))" autocomplete="on">
+          @Html.AntiForgeryToken()
+          <div class="mdl-h"><div class="mdl-t" id="payInvoiceT">@(T("Pay invoice :no", new Dictionary<string, object?> { ["no"] = invoice.InvoiceNo }))</div></div>
+          <div class="mdl-b">
+            <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:16px;" class="mb-3">
+              <div class="d-flex justify-content-between mb-2" style="font-size:13px;"><span style="color:var(--muted)">@(T("Supplier"))</span><span style="font-weight:500">@(bid.Supplier.CompanyName)</span></div>
+              <div class="d-flex justify-content-between" style="font-size:13px;"><span style="color:var(--muted)">@(T("Amount to pay"))</span><span class="num" style="font-weight:700">@(T("SAR")) @(Php.NumberFormat((decimal) invoice.TotalAmount, 2))</span></div>
+            </div>
+            <div class="row g-3">
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12", ["name"] = "payment_method", ["label"] = "Payment method", ["type"] = "select", ["placeholder"] = $"{Php.E(T("Select"))}", ["options"] = new Dictionary<string, object?> { ["Credit Card"] = "Credit Card", ["Debit Card"] = "Debit Card" }, ["value"] = "Credit Card", ["required"] = true }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12", ["name"] = "card_holder_name", ["label"] = "Card holder name", ["placeholder"] = $"{Php.E(T("Name as on the card"))}", ["required"] = true, ["maxlength"] = "100", ["autocomplete"] = "cc-name" }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12", ["name"] = "card_number", ["label"] = "Card number", ["type"] = "text", ["placeholder"] = "1234 5678 9012 3456", ["required"] = true, ["inputmode"] = "numeric", ["maxlength"] = "23", ["pattern"] = "^[0-9 ]{13,23}$", ["title"] = $"{Php.E(T("13 to 19 digits"))}", ["autocomplete"] = "cc-number" }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-6", ["name"] = "card_expiry_date", ["label"] = "Expiry date", ["placeholder"] = $"{Php.E(T("MM/YY"))}", ["required"] = true, ["maxlength"] = "5", ["pattern"] = "^(0[1-9]|1[0-2])/[0-9]{2}$", ["title"] = $"{Php.E(T("MM/YY"))}", ["autocomplete"] = "cc-exp" }))
+              @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-6", ["name"] = "cvv", ["label"] = "CVV", ["type"] = "password", ["placeholder"] = "•••", ["required"] = true, ["inputmode"] = "numeric", ["minlength"] = "3", ["maxlength"] = "4", ["pattern"] = "^[0-9]{3,4}$", ["title"] = $"{Php.E(T("3 or 4 digits"))}", ["autocomplete"] = "cc-csc" }))
+            </div>
+          </div>
+          <div class="mdl-f">
+            <button class="btn btn-white" type="button" data-md-close>@(T("Not now"))</button>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-lock me-2"></i>@(T("Pay SAR :amount", new Dictionary<string, object?> { ["amount"] = Php.NumberFormat((decimal) invoice.TotalAmount, 2) }))</button>
+          </div>
+        </form>
+      </div>
+</div>
+</text>}
+</text>); }

@@ -1,0 +1,71 @@
+
+@{
+    int accepted = Get<int>("accepted");
+    List<Bid> bids = Get<List<Bid>>("bids");
+    int count = Get<int>("count");
+    string? status = Get<string?>("status");
+    int? winRate = Get<int?>("winRate");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; }
+@{ ViewData["title"] = "My bids"; }
+
+    <div class="body-pad"><div class="wrap">
+      @await Html.PartialAsync("~/Views/Shared/_FlashSite.cshtml", With(new Dictionary<string, object?> {  }))
+      <div class="sect-head" style="margin-bottom:32px">
+        <div><h1 class="pg-h1">@(T("My bids"))</h1><p class="pg-sub">@(T(count == 1 ? ":n bid submitted · :a accepted · :r% win rate" : ":n bids submitted · :a accepted · :r% win rate", new Dictionary<string, object?> { ["n"] = count, ["a"] = accepted, ["r"] = winRate }))</p></div>
+        <form method="GET" action="@(Route("supplier.bids.index"))" class="md-ico" style="width:100%;max-width:190px">
+          <select name="status" class="fld" onchange="this.form.submit()" aria-label="@(T("Status"))">
+            <option value="">@(T("All statuses"))</option>
+            @foreach (var s in new[] { "Submitted", "Accepted", "Rejected", "Cancelled" }) {<text><option value="@(s)" @Html.Raw((status == s) ? "selected" : "")>@(T(s))</option></text>}
+          </select><i class="md-ico-i bi bi-chevron-down" style="color:var(--muted)"></i>
+        </form>
+      </div>
+
+      @if (Php.Any(bids)) { foreach (var b in bids) {<text>
+        @{
+var r = b.Request;
+var first = r.Supplies.First();
+var more = r.Supplies.Count() - 1;
+var won = b.BidStatus == "Accepted";
+var dim = Php.InArray(b.BidStatus, new[] { "Rejected", "Cancelled" }, true);
+var contract = b.Contract;
+}
+      <article class="@Css(("rq", true), ("rq-feat", won), ("rq-dim", dim))" @Html.Raw((Php.B(won)) ? $" style=\"background:var(--olive-pale)\" " : "")>
+        @if (Php.B(won)) {<text>
+        <span class="thumb t-linen" style="background:var(--olive);color:#fff"><i class="bi bi-trophy"></i></span>
+        </text>} else {<text>
+        @await Html.PartialAsync("~/Views/supplier/partials/thumb.cshtml", With(new Dictionary<string, object?> { ["s"] = first }))
+        </text>}
+        <div class="rq-b">
+          <div class="rq-top"><span class="rq-no">@(r.Code)</span><span class="rq-hotel">@(r.Hotel.HotelName) · @(T(r.Hotel.City))</span>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = b.BidStatus, ["icon"] = won ? "bi-check2" : null }))</div>
+          <h3 class="rq-h"><a href="@(Route("supplier.bids.show", b))" class="md-link" style="color:inherit">@(first?.SupplyName)</a>@if (more > 0) {<text> <span>@(T(more == 1 ? "+ :n more item" : "+ :n more items", new Dictionary<string, object?> { ["n"] = more }))</span></text>}</h3>
+          <div class="rq-s">
+            @switch (b.BidStatus) {
+              case "Accepted":<text> @(T("You won this request.")) @(T(contract?.ContractStatus == "Signed" ? "The contract is signed by both parties." : "A contract has been generated for both parties to sign.")) </text>break;
+              case "Submitted":<text> @{ var t = r.TotalQuantity(); }@(Php.B(t) ? Php.NumberFormat(t[0]) + " " + t[1] : r.Supplies.Count() + " items") · @(T("waiting for the hotel to decide")) </text>break;
+              case "Rejected":<text> @(T(r.AcceptedBid ? "Another bid was accepted for this request" : "Not chosen by the hotel")) </text>break;
+              default:<text> @(T("Withdrawn by you"))
+            </text>break; }
+          </div>
+          <div class="rq-f" @Html.Raw((Php.B(won)) ? $" style=\"border-top-color:#AECFC0\" " : "")>
+            <span class="mt"><i class="bi bi-tag"></i>@(T("Your bid")) <b class="@Css(("strike", dim))">@(T("SAR")) @(Php.NumberFormat((decimal) b.BidPrice, 2))</b></span>
+            <span class="mt"><i class="bi bi-truck"></i><b>@(b.EstimatedDeliveryDays)</b> @(T("days"))</span>
+            <span class="mt"><i class="bi bi-calendar-check"></i>@(T("Submitted")) <b>@(b.CreatedAt.TranslatedFormat("d M Y"))</b></span>
+            @if (Php.B(won) && Php.B(contract) && contract.ContractStatus == "Pending Signatures" && !Php.B(contract.SupplierSignedAt)) {<text>
+            <span class="rq-cta"><a class="btn b-olive" href="@(Shell.Url("supplier.contracts.show", contract))"><i class="bi bi-pen"></i>@(T("Sign contract"))</a></span>
+            </text>} else if (Php.B(won) && Php.B(contract)) {<text>
+            <span class="rq-cta"><a class="btn b-line" href="@(Shell.Url("supplier.contracts.show", contract))">@(T("View contract"))</a></span>
+            </text>} else if (b.BidStatus == "Submitted") {<text>
+              @if (Can("update", b)) {<text>
+              <span class="rq-cta"><a class="btn b-line" href="@(Route("supplier.bids.edit", b))">@(T("Update bid"))</a><a class="btn b-line" href="@(Route("supplier.bids.show", new Dictionary<string, object?> { ["0"] = b, ["cancel"] = 1 }))" style="color:var(--dang)">@(T("Cancel"))</a></span>
+              </text>}
+            </text>}
+          </div>
+        </div>
+      </article>
+      </text>} } else {<text>
+      <div class="lock">@(T("You have not submitted any bids yet.")) <a href="@(Route("supplier.requests.index"))" class="link" style="font-size:inherit">@(T("Browse open requests"))</a></div>
+      </text>}
+    </div></div>
+

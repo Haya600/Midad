@@ -1,0 +1,263 @@
+
+
+@{ var catJs = Php.Collect(Config("midad.catalog")).Map( (c) => new Dictionary<string, object?> { ["products"] = Php.Collect(c["products"]).Map( (x) => new[] { x, T(x) }).All(), ["specs"] = Php.Collect(c["specs"]).Map( (opts, a) => new Dictionary<string, object?> { ["label"] = T(a), ["options"] = Php.Collect(opts).Map( (o) => new[] { o, T(o) }).All() }).All() }); }
+<script>
+(function () {
+  var form = document.getElementById('reqForm');
+  if (!form) return;
+  var box = form.querySelector('[data-items]'), addBtn = form.querySelector('[data-add-item]');
+  var tpl = document.getElementById('itemTpl').innerHTML;
+  var publishBtn = form.querySelector('[data-publish]');
+  var canPublish = Php.B(publishBtn) && !Php.B(publishBtn.disabled);
+  var localKey = form.dataset.localKey;
+  var lastAction = 'publish';
+  var months = window.mdT.months;
+  var pill = {High: 'p-dan', Medium: 'p-warn', Low: 'p-neu'};
+  var faint = '<span style="color:var(--faint);font-weight:400">';
+  var CAT = @Html.Raw(Php.JsonEncode(catJs));                    
+  var logoBox = document.querySelector('[data-logo-box]'), hasLogo = form.dataset.hasLogo === '1';
+
+  function q(sel, root) { return (root || form).querySelector(sel); }
+  function cards() { return Array.prototype.slice.call(box.querySelectorAll('[data-item]')); }
+  function fmtDate(v) { if (!v) return ''; var p = v.split('-'); return ('0' + +p[2]).slice(-2) + ' ' + months[+p[1] - 1] + ' ' + p[0]; }
+  function daysFromToday(v) { var t = new Date(); t.setHours(0,0,0,0); var p = v.split('-'); return Math.round((new Date(+p[0], +p[1]-1, +p[2]) - t) / 864e5); }
+  function nextIndex() { return cards().reduce(function (m, c) { var n = parseInt(c.dataset.item, 10); return isNaN(n) ? m : Math.max(m, n + 1); }, 0); }
+
+  function renumber() {
+    var cs = cards();
+    cs.forEach(function (c, k) {
+      q('.item-n', c).textContent = mdt('Item :n', {n: k + 1});
+      q('[data-remove-item]', c).hidden = cs.length < 2;
+    });
+  }
+  function addItem(values) {
+    var div = document.createElement('div');
+    div.innerHTML = tpl.replace(/__I__/g, nextIndex()).trim();
+    var card = div.firstElementChild;
+    box.insertBefore(card, addBtn);
+    if (values) fill(card, values);
+    renumber(); update();
+    return card;
+  }
+  function opt(v, label, sel) { var o = document.createElement('option'); o.value = v; o.textContent = label; if (sel) o.selected = true; return o; }
+  function currentSpecs(card) {
+    var o = {};
+    card.querySelectorAll('[data-specs] select').forEach(function (s) { var m = s.name.match(/\[specs\]\[([^\]]+)\]$/); if (m) o[m[1]] = s.value; });
+    return o;
+  }
+  function setOther(card, on, value) {
+    var prod = q('[data-prod]', card), other = q('[data-prod-other]', card), name = 'items[' + card.dataset.item + '][supply_name]';
+    if (on) { prod.removeAttribute('name'); prod.value = '__other'; other.name = name; other.hidden = false; other.required = true; if (value != null) other.value = value; }
+    else { prod.name = name; other.removeAttribute('name'); other.hidden = true; other.required = false; }
+  }
+  
+  function rebuild(card, keep) {
+    var cat = q('[data-cat]', card).value, c = CAT[cat], idx = card.dataset.item;
+    var prod = q('[data-prod]', card), other = q('[data-prod-other]', card);
+    var cur = Php.B(keep) ? (keep.supply_name || '') : (prod.name ? prod.value : other.value);
+    var prev = Php.B(keep) ? (keep.specs || {}) : currentSpecs(card), inList = false;
+    prod.innerHTML = '';
+    prod.appendChild(opt('', mdt(c ? 'Select a product' : 'Choose a category first')));
+    if (c) {
+      c.products.forEach(function (x) { if (x[0] === cur) inList = true; prod.appendChild(opt(x[0], x[1], x[0] === cur)); });
+      prod.appendChild(opt('__other', mdt('Other (type the name)'), cur !== '' && !inList));
+    }
+    prod.disabled = !c;
+    setOther(card, !!c && cur !== '' && !inList, cur);
+    var wrap = q('[data-specs-wrap]', card), list = q('[data-specs]', card);
+    list.innerHTML = '';
+    if (c) Object.keys(c.specs).forEach(function (a) {
+      var sp = c.specs[a], col = document.createElement('div'), ico = document.createElement('div'), sel = document.createElement('select'), i = document.createElement('i');
+      col.className = 'col-6 col-md-3'; ico.className = 'md-ico'; sel.className = 'fld'; i.className = 'md-ico-i bi bi-chevron-down'; i.style.color = 'var(--muted)';
+      sel.name = 'items[' + idx + '][specs][' + a + ']'; sel.setAttribute('aria-label', sp.label);
+      sel.appendChild(opt('', sp.label));
+      sp.options.forEach(function (o) { sel.appendChild(opt(o[0], o[1], prev[a] === o[0])); });
+      ico.appendChild(sel); ico.appendChild(i); col.appendChild(ico); list.appendChild(col);
+    });
+    wrap.hidden = !c;
+  }
+  function fill(card, v) {
+    var cat = q('[data-cat]', card);
+    if (v.category && cat.querySelector('option[value="' + v.category + '"]')) cat.value = v.category;
+    rebuild(card, {supply_name: v.supply_name || '', specs: v.specs || {}});
+    ['quantity', 'unit_of_measure', 'notes'].forEach(function (f) {
+      var el = card.querySelector('[name$="[' + f + ']"]');
+      if (!el || v[f] == null) return;
+      if (el.tagName === 'SELECT' && !el.querySelector('option[value="' + v[f] + '"]')) return;
+      el.value = v[f];
+    });
+    var cb = q('[data-custom]', card); if (cb) cb.checked = !!v.custom;
+  }
+
+  function itemsData() {
+    return cards().map(function (c) {
+      var o = {specs: {}};
+      c.querySelectorAll('[name]').forEach(function (el) {
+        var m = el.name.match(/^items\[[^\]]+\]\[(\w+)\](?:\[([^\]]+)\])?$/);
+        if (!m) return;
+        var val = el.type === 'checkbox' ? (el.checked ? '1' : '') : el.value;
+        if (m[2]) o[m[1]][m[2]] = val; else o[m[1]] = val;
+      });
+      if (o.supply_name == null) o.supply_name = '';
+      return o;
+    });
+  }
+  function itemsSummary(suffix) {
+    var data = itemsData().filter(function (o) { return o.supply_name.trim() !== ''; });
+    if (!data.length) return null;
+    var units = {}, total = 0;
+    data.forEach(function (o) { units[o.unit_of_measure || '?'] = 1; total += parseInt(o.quantity, 10) || 0; });
+    var keys = Object.keys(units), s = mdt(data.length === 1 ? ':n item' : ':n items', {n: data.length});
+    if (keys.length === 1 && keys[0] !== '?' && total > 0) s += ' · ' + total.toLocaleString('en-US') + ' ' + mdt(keys[0]) + (suffix ? mdt(suffix) : '');
+    return s;
+  }
+
+  function requiredFilled() {
+    var ok = true;
+    form.querySelectorAll('[data-req]').forEach(function (el) {
+      if (!el.name || el.disabled) return;      
+      if (el.value === '' || (el.hasAttribute('data-qty') && !(parseInt(el.value, 10) > 0))) ok = false;
+    });
+    return ok;
+  }
+
+  function update() {
+    var date = q('[data-date]').value, prio = q('[data-prio]').value;
+    var hasErr = @(errors.Any() ? "true" : "false");
+    var dHelp = q('[data-date]').closest('[class*="col-"]').querySelector('.help');
+    if (dHelp && date) { var n = daysFromToday(date); dHelp.textContent = n > 0 ? mdt(n === 1 ? ':n day from today' : ':n days from today', {n: n}) : mdt('When the goods must arrive'); }
+    var pHelp = q('[data-prio]').closest('[class*="col-"]').querySelector('.help');
+    if (pHelp) pHelp.textContent = mdt(prio ? 'Suppliers see this on the request' : 'High, Medium or Low');
+
+    var sumItems = q('[data-sum-items]'), sumDate = q('[data-sum-date]'), sumPrio = q('[data-sum-prio]');
+    var s = itemsSummary(' total');
+    if (!sumItems.style.color) { sumItems.innerHTML = s ? s : faint + mdt('None added yet') + '</span>'; sumItems.style.fontWeight = ''; }
+    if (!sumDate.style.color) sumDate.innerHTML = date ? fmtDate(date) : faint + mdt('Not set') + '</span>';
+    sumPrio.innerHTML = prio ? '<span class="pill ' + pill[prio] + '">' + mdt(prio) + '</span>' : faint + mdt('Not set') + '</span>';
+    var added = q('[data-items-added]');
+    if (added) { var c = itemsData().filter(function (o) { return o.supply_name.trim() !== ''; }).length; added.textContent = mdt(c === 1 ? ':n item added' : ':n items added', {n: c}); }
+
+    if (logoBox) {
+      var wantsLogo = !!form.querySelector('[data-custom]:checked');
+      if (!logoBox.querySelector('.err')) logoBox.hidden = !wantsLogo;
+      var li = Php.B(logoBox.querySelector('[data-logo-input]'); if (li) li.required = wantsLogo) && !Php.B(hasLogo);
+    }
+    if (publishBtn && canPublish) {
+      var ready = requiredFilled();
+      publishBtn.classList.toggle('btn-primary', ready);
+      publishBtn.classList.toggle('btn-disabled', !ready);
+      publishBtn.disabled = !ready;
+    }
+  }
+
+  
+  function nativeSubmit(action) { q('[name=action]').value = action; HTMLFormElement.prototype.submit.call(form); }
+  function showFail() {
+    q('[data-fail]', document).hidden = false;
+    var next = q('[data-next]'); if (next) next.hidden = true;
+    q('[data-sum-k]').textContent = mdt('Saved');
+    var v = q('[data-sum-v]'); v.textContent = mdt('Not saved'); v.style.color = 'var(--danger)';
+    window.scrollTo({top: 0});
+    document.querySelectorAll('[data-submit],[data-publish]').forEach(function (b) { b.disabled = false; });
+  }
+  function submitVia(action) {
+    lastAction = action;
+    q('[name=action]').value = action;
+    if (action === 'draft') {
+      var name = form.querySelector('[name$="[supply_name]"]');
+      if (!itemsData().some(function (o) { return o.supply_name.trim() !== ''; })) { name.reportValidity(); return; }
+    } else if (!form.reportValidity()) { return; }
+    document.querySelectorAll('[data-submit],[data-publish]').forEach(function (b) { b.disabled = true; });
+    fetch(form.action, {method: 'POST', body: new FormData(form), headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (r) {
+        var json = (r.headers.get('Content-Type') || '').indexOf('application/json') !== -1;
+        if (r.ok && json) return r.json().then(function (j) { if (localKey) try { localStorage.removeItem(localKey); } catch (e) {} location.href = j.redirect; });
+        if (r.status >= 500) return showFail();
+        nativeSubmit(action);   
+      })
+      .catch(showFail);
+  }
+
+  
+  addBtn.addEventListener('click', function () { if (cards().length < 20) q('[data-cat]', addItem()).focus(); });
+  box.addEventListener('change', function (e) {
+    var card = e.target.closest('[data-item]');
+    if (!card) return;
+    if (e.target.matches('[data-cat]')) rebuild(card, {supply_name: '', specs: {}});
+    if (e.target.matches('[data-prod]')) {
+      setOther(card, e.target.value === '__other', '');
+      if (e.target.value === '__other') q('[data-prod-other]', card).focus();
+    }
+  });
+  box.addEventListener('click', function (e) {
+    var rm = e.target.closest('[data-remove-item]');
+    if (rm && cards().length > 1) { rm.closest('[data-item]').remove(); renumber(); update(); }
+  });
+  form.addEventListener('input', update);
+  form.addEventListener('change', update);
+  form.addEventListener('submit', function (e) {   
+    e.preventDefault();
+    if (publishBtn) { if (!publishBtn.disabled) publishBtn.click(); } else submitVia('publish');
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-submit]');
+    if (b) { var m = b.closest('.md-modal'); if (m) mdModal(m, false); submitVia(b.dataset.submit); }
+    if (e.target.closest('[data-publish]')) {
+      if (!form.reportValidity()) return;
+      document.querySelector('[data-c-items]').textContent = itemsSummary('') || '';
+      document.querySelector('[data-c-date]').textContent = fmtDate(q('[data-date]').value);
+      document.querySelector('[data-c-prio]').textContent = mdt(q('[data-prio]').value);
+      confirmList();
+      mdModal(document.getElementById('confirmPublish'), true);
+    }
+    if (e.target.closest('[data-retry]')) submitVia(lastAction);
+    if (e.target.closest('[data-local-draft]') && localKey) {
+      try {
+        localStorage.setItem(localKey, JSON.stringify({required_delivery_date: q('[data-date]').value, priority: q('[data-prio]').value, items: itemsData()}));
+        q('[data-sum-v]').textContent = mdt('On this device'); q('[data-sum-v]').style.color = '';
+      } catch (err) {}
+    }
+  });
+
+  
+  function confirmList() {
+    var list = document.querySelector('[data-c-list]');
+    list.innerHTML = '';
+    cards().forEach(function (card) {
+      var prod = q('[data-prod]', card), other = q('[data-prod-other]', card);
+      var name = Php.B(prod.name) ? (prod.selectedIndex > 0 ? prod.options[prod.selectedIndex].text : '') : other.value.trim();
+      if (!name) return;
+      var unit = q('[data-unit]', card), specs = [];
+      card.querySelectorAll('[data-specs] select').forEach(function (sel) { if (sel.value) specs.push(sel.getAttribute('aria-label') + ': ' + sel.options[sel.selectedIndex].text); });
+      var notes = card.querySelector('[name$="[notes]"]');
+      if (notes && notes.value.trim()) specs.push(notes.value.trim());
+      if (q('[data-custom]', card).checked) specs.push(mdt('Customization: hotel logo'));
+      var row = document.createElement('div'), top = document.createElement('div'), a = document.createElement('span'), b = document.createElement('span');
+      row.style.cssText = 'padding:10px 16px;border-top:1px solid var(--border);font-size:13px';
+      top.className = 'd-flex justify-content-between gap-3';
+      a.style.fontWeight = '500'; a.textContent = name;
+      b.className = 'num'; b.style.whiteSpace = 'nowrap';
+      b.textContent = (parseInt(q('[data-qty]', card).value, 10) || 0).toLocaleString('en-US') + ' ' + (unit.selectedIndex >= 0 ? unit.options[unit.selectedIndex].text : '');
+      top.appendChild(a); top.appendChild(b); row.appendChild(top);
+      if (specs.length) { var sp = document.createElement('div'); sp.style.cssText = 'color:var(--muted);margin-top:2px'; sp.textContent = specs.join(' · '); row.appendChild(sp); }
+      list.appendChild(row);
+    });
+    if (list.firstChild) list.firstChild.style.borderTop = '0';
+  }
+
+  
+  if (localKey && !@(errors.Any() || Php.B(Old("action")) ? "true" : "false")) {
+    try {
+      var saved = JSON.parse(localStorage.getItem(localKey) || 'null');
+      if (saved && saved.items && saved.items.length) {
+        q('[data-date]').value = saved.required_delivery_date || '';
+        q('[data-prio]').value = saved.priority || '';
+        fill(cards()[0], saved.items[0]);
+        saved.items.slice(1).forEach(function (v) { addItem(v); });
+        q('[data-restored]', document).hidden = false;
+      }
+    } catch (err) {}
+  }
+  renumber(); update();
+})();
+</script>

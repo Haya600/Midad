@@ -1,0 +1,14 @@
+
+@{
+    Supply? s = Get<Supply?>("s");
+    string? style = Get<string?>("style");
+}
+
+@{
+    var supply = s as Midad.Models.Supply;
+    var cls = supply?.ThumbClass ?? "t-equip";
+    var hasImage = !string.IsNullOrEmpty(supply?.ImageSrc);
+    
+    var styleAttr = !Php.Empty(style) || Php.B(hasImage) ? (string)(style ?? "") + (hasImage ? ";overflow:hidden " : "") : null;
+}
+<span class="thumb @cls" style="@styleAttr">@if (hasImage) {<img src="@supply!.ImageSrc" alt="@supply.SupplyName" loading="lazy" style="width:100%;height:100%;object-fit:cover">} else {<i class="bi @(supply?.ThumbIcon ?? "bi-cart3")"></i>}</span>

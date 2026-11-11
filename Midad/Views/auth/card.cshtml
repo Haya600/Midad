@@ -1,0 +1,24 @@
+
+
+@{ Layout = "~/Views/Shared/_LayoutPublic.cshtml"; ViewData["bare"] = true; }
+
+  <section class="s-cream" style="min-height:100vh;display:flex;align-items:center;padding:48px 0">
+    <div class="wrap" style="width:100%;max-width:540px">
+      <div class="text-center mb-4">
+        <a href="@(Route("home"))" class="brand d-inline-flex text-reset text-decoration-none">@await Html.PartialAsync("~/Views/svg/logo-header.cshtml", With(new Dictionary<string, object?> {  }))<span class="brand-n">@(T("Midad"))</span></a>
+      </div>
+      <div class="cd"><div class="cd-p md-auth-card">
+        <div class="auth-box" style="width:100%">
+          @Yield("card")
+        </div>
+      </div></div>
+      <div class="d-flex justify-content-center align-items-center gap-3 mt-4" style="font-size:13.5px;color:var(--faint)">
+        <span>© 2026 @(T("Midad"))</span><span>·</span>
+        <a href="@(Route("lang.switch", Locale() == "ar" ? "en" : "ar"))" class="md-link" style="color:var(--olive);font-weight:600" lang="@(Locale() == "ar" ? "en" : "ar")"><i class="bi bi-translate me-1"></i>@(Locale() == "ar" ? "English" : "العربية")</a>
+      </div>
+    </div>
+  </section>
+
+@{ Push("head", @<text>
+<style>.md-auth-card{padding:40px 44px}@@media (max-width:575.98px){.md-auth-card{padding:28px 20px}}</style>
+</text>); }

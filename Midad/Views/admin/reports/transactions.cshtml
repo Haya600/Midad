@@ -1,0 +1,51 @@
+
+@{
+    decimal collected = Get<decimal>("collected");
+    decimal commission = Get<decimal>("commission");
+    decimal commissionDue = Get<decimal>("commissionDue");
+    decimal invoiced = Get<decimal>("invoiced");
+    int orders = Get<int>("orders");
+    int payments = Get<int>("payments");
+    decimal refunded = Get<decimal>("refunded");
+    Paginator<Invoice> rows = Get<Paginator<Invoice>>("rows");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Transaction report"; }
+@section crumb {<text>Reports <span style="color:var(--faint)">/</span> <b>@(T("Transactions"))</b></text>}
+
+        @await Html.PartialAsync("~/Views/admin/reports/_head.cshtml", With(new Dictionary<string, object?> { ["active"] = "transactions" }))
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Orders"))</div><div class="stat-v">@(orders)</div><div class="stat-d">@(T("SAR")) @(Php.NumberFormat(invoiced)) @(T("invoiced"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Payments collected"))</div><div class="stat-v" style="font-size:25px;">@(T("SAR")) @(Php.NumberFormat(collected))</div><div class="stat-d">@(T(payments == 1 ? ":n card payment" : ":n card payments", new Dictionary<string, object?> { ["n"] = payments }))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Commission revenue"))</div><div class="stat-v" style="font-size:25px;">@(T("SAR")) @(Php.NumberFormat(commission))</div><div class="stat-d">@(T("SAR")) @(Php.NumberFormat(commissionDue)) @(T("on unpaid invoices"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Refunds approved"))</div><div class="stat-v" style="font-size:25px;">@(T("SAR")) @(Php.NumberFormat(refunded))</div><div class="stat-d">@(T("Returned to hotels"))</div></div></div>
+        </div>
+        <div class="card-m">
+          <div class="card-h"><div class="card-t">@(T("Invoices"))</div><span style="font-size:13px;color:var(--muted)">@(T("Commission = 10% of subtotal"))</span></div>
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Invoice"))</th><th>@(T("Order"))</th><th>@(T("Hotel"))</th><th>@(T("Supplier"))</th><th>@(T("Issued"))</th><th class="text-end">@(T("Subtotal"))</th><th class="text-end">VAT</th><th class="text-end">@(T("Total"))</th><th class="text-end">@(T("Commission"))</th><th>@(T("Status"))</th></tr></thead>
+            <tbody>
+              @if (Php.Any(rows)) { foreach (var i in rows) {<text>
+              <tr>
+                <td class="num" style="font-weight:500">@(i.InvoiceNo)</td>
+                <td class="num">@(i.Order.OrderNo)</td>
+                <td>@(i.Order.Contract.Bid.Request.Hotel.HotelName)</td>
+                <td>@(i.Order.Contract.Bid.Supplier.CompanyName)</td>
+                <td class="num">@(i.IssueDate.TranslatedFormat("d M Y"))</td>
+                <td class="text-end num">@(Php.NumberFormat((decimal) i.SubtotalAmount, 2))</td>
+                <td class="text-end num">@(Php.NumberFormat((decimal) i.VatAmount, 2))</td>
+                <td class="text-end num">@(Php.NumberFormat((decimal) i.TotalAmount, 2))</td>
+                <td class="text-end num" style="font-weight:500">@(Php.NumberFormat((decimal) i.CommissionAmount, 2))</td>
+                <td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = i.InvoiceStatus }))</td>
+              </tr>
+              </text>} } else {<text>
+              <tr><td colspan="10" style="color:var(--muted)">@(T("No invoices in this period."))</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_PgHotel.cshtml", With(new Dictionary<string, object?> { ["p"] = rows, ["noun"] = "invoices" }))
+

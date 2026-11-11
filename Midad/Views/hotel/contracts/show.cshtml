@@ -1,0 +1,107 @@
+
+@{
+    Contract? contract = Get<Contract?>("contract");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = contract.ContractNo; }
+@section crumb {<text><a href="@(Route("hotel.contracts.index"))" class="md-link" style="color:inherit">@(T("Contracts"))</a> <span style="color:var(--faint)">/</span> <b>@(contract.ContractNo)</b></text>}
+@{ var bid = contract.Bid; }
+@{ var sr = bid.Request; }
+@{ var order = contract.PurchaseOrder; }
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-1 flex-wrap"><h1>@(contract.ContractNo)</h1>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = contract.ContractStatus }))</div>
+            <p>@(T("Generated :date", new Dictionary<string, object?> { ["date"] = contract.GeneratedAt.TranslatedFormat("j M Y, H:i") })) · @(T("from :code", new Dictionary<string, object?> { ["code"] = sr.Code })) · @(bid.Supplier.CompanyName)</p>
+          </div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-white" href="@(Route("contracts.document", contract))" target="_blank" rel="noopener"><i class="bi bi-printer me-2"></i>@(T("Print contract"))</a>
+            @if (Can("sign", contract)) {<text>
+            <button class="btn btn-primary" type="button" data-md-open="#signContract"><i class="bi bi-pen me-2"></i>@(T("Sign contract"))</button>
+            </text>}
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-12 col-lg-8">
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Contract terms"))</div></div>
+              <div class="card-p">
+                <dl class="kv row mb-0">
+                  <div class="col-12 col-md-6"><dt>@(T("Hotel"))</dt><dd>@(sr.Hotel.HotelName ?? Auth().User.Hotel.HotelName)</dd></div>
+                  <div class="col-12 col-md-6"><dt>@(T("Supplier"))</dt><dd>@(bid.Supplier.CompanyName)</dd></div>
+                  <div class="col-12 col-md-6"><dt>@(T("Contract value"))</dt><dd class="num">@(T("SAR")) @(Php.NumberFormat((decimal) contract.ContractValue, 2)) <span style="color:var(--muted);font-weight:400">@(T("excl. VAT"))</span></dd></div>
+                  <div class="col-12 col-md-6"><dt>@(T("VAT at 15%"))</dt><dd class="num">@(T("SAR")) @(Php.NumberFormat((decimal) contract.ContractValue * Config("midad.vat_rate"), 2))</dd></div>
+                  <div class="col-12 col-md-6"><dt>@(T("Agreed delivery date"))</dt><dd class="num">@(contract.AgreedDeliveryDate.TranslatedFormat("d M Y"))</dd></div>
+                  <div class="col-12 col-md-6"><dt>@(T("Delivery time"))</dt><dd class="num" style="margin-bottom:0">@(bid.EstimatedDeliveryDays) @(T("days"))</dd></div>
+                </dl>
+              </div>
+            </div>
+            <div class="card-m">
+              <div class="card-h"><div class="card-t">@(T("Items covered"))</div><span style="font-size:13px;color:var(--muted)">@(sr.ItemsSummary())</span></div>
+              <div class="md-table-scroll">
+              <table class="tbl">
+                <thead><tr><th>#</th><th>@(T("Product"))</th><th>@(T("Category"))</th><th class="text-end">@(T("Quantity"))</th><th>@(T("Specifications"))</th></tr></thead>
+                <tbody>
+                  @foreach (var (s, loop) in Php.Loop(sr.Supplies)) {<text>
+                  <tr><td class="num" style="color:var(--muted)">@(loop.Iteration)</td><td style="font-weight:500">@(s.SupplyName)</td><td>@(s.Category)</td><td class="text-end num">@(Php.NumberFormat(s.Quantity)) @(s.UnitOfMeasure)</td><td style="color:var(--muted);font-size:13px;">@(s.Description)</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-4">
+            <div class="card-m card-p mb-3">
+              <div class="card-t mb-3">@(T("Signatures"))</div>
+              <dl class="kv mb-0">
+                <dt>@(T("Hotel"))</dt><dd class="num">@Html.Raw(contract.HotelSignedAt ? Php.E(contract.HotelSignedAt.TranslatedFormat("j M Y, H:i")) : "<span style=\"color:var(--faint);font-weight:400\">" + Php.E(T("Not signed yet")) + "</span>")</dd>
+                <dt>@(T("Supplier"))</dt><dd class="num">@Html.Raw(contract.SupplierSignedAt ? Php.E(contract.SupplierSignedAt.TranslatedFormat("j M Y, H:i")) : "<span style=\"color:var(--faint);font-weight:400\">" + Php.E(T("Not signed yet")) + "</span>")</dd>
+                <dt>@(T("Signed copy"))</dt><dd style="margin-bottom:0">@if (Php.B(contract.DocumentSrc)) {<text><a href="@(contract.DocumentSrc)" target="_blank" rel="noopener" class="md-link" style="color:var(--primary-dark)"><i class="bi bi-file-earmark-pdf me-1"></i>@(T("Open PDF"))</a></text>} else {<text><span style="color:var(--faint);font-weight:400">@(T("None uploaded yet"))</span></text>}</dd>
+              </dl>
+            </div>
+            @if (Php.B(order)) {<text>
+            <div class="card-m card-p mb-3">
+              <div class="card-t mb-3">@(T("Purchase order"))</div>
+              <dl class="kv mb-3">
+                <dt>@(T("Order"))</dt><dd class="num">@(order.OrderNo) @await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = order.OrderStatus, ["class"] = "ms-1" }))</dd>
+                <dt>@(T("Invoice"))</dt><dd class="num" style="margin-bottom:0">@(order.Invoice?.InvoiceNo) @if (Php.B(order.Invoice)) {<text>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = order.Invoice.InvoiceStatus, ["class"] = "ms-1" }))</text>}</dd>
+              </dl>
+              <a class="btn btn-primary btn-sm" href="@(Route("hotel.orders.show", order))">@(T("Open order"))</a>
+            </div>
+            </text>} else {<text>
+            <div class="al al-info"><i class="bi bi-info-circle-fill"></i><div><div class="al-t">@(T("What happens next"))</div><div class="al-b">@(T("Print the contract, sign it, and upload the signed PDF. When both parties have signed, the purchase order and invoice are created automatically."))</div></div></div>
+            </text>}
+          </div>
+        </div>
+
+
+@{ Push("modals", @<text>
+@if (Can("sign", contract)) {<text>
+<div class="md-modal" id="signContract" hidden role="dialog" aria-modal="true" aria-labelledby="signContractT" @Html.Raw((Php.B(errors.HasAny(new[] { "contract_file", "agree" }))) ? $" data-md-autoshow " : "")>
+      <div class="scrim">
+        <form class="mdl" method="POST" action="@(Route("hotel.contracts.sign", contract))" enctype="multipart/form-data">
+          @Html.AntiForgeryToken()
+          <div class="mdl-h"><div class="mdl-t" id="signContractT">@(T("Sign contract :no?", new Dictionary<string, object?> { ["no"] = contract.ContractNo }))</div></div>
+          <div class="mdl-b">
+            <p style="margin:0 0 16px;">@(T("Upload the contract signed by your authorised signatory. Your signature is recorded with today's date."))</p>
+            <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:16px;" class="mb-3">
+              <div class="d-flex justify-content-between mb-2" style="font-size:13px;"><span style="color:var(--muted)">@(T("Supplier"))</span><span style="font-weight:500">@(bid.Supplier.CompanyName)</span></div>
+              <div class="d-flex justify-content-between mb-2" style="font-size:13px;"><span style="color:var(--muted)">@(T("Contract value"))</span><span class="num" style="font-weight:500">@(T("SAR")) @(Php.NumberFormat((decimal) contract.ContractValue, 2))</span></div>
+              <div class="d-flex justify-content-between" style="font-size:13px;"><span style="color:var(--muted)">@(T("Agreed delivery date"))</span><span class="num" style="font-weight:500">@(contract.AgreedDeliveryDate.TranslatedFormat("d M Y"))</span></div>
+            </div>
+            @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "mb-3", ["name"] = "contract_file", ["label"] = "Signed contract", ["type"] = "file", ["accept"] = "application/pdf,.pdf", ["hint"] = "PDF, up to 5 MB", ["required"] = true }))
+            <label style="font-size:14px;color:var(--ink-2);display:block"><input type="checkbox" name="agree" value="1" class="md-cb" required><i class="bi bi-square me-2" style="color:var(--border-strong)"></i><i class="bi bi-check-square-fill me-2" style="color:var(--accent)"></i>@(T("I agree to the terms of this contract on behalf of :name.", new Dictionary<string, object?> { ["name"] = Auth().User.Hotel.HotelName }))</label>
+            @if (errors.Has("agree")) { var message = errors.First("agree"); <text><div class="err"><i class="bi bi-exclamation-circle me-1"></i>@(T(message))</div></text>}
+          </div>
+          <div class="mdl-f">
+            <button class="btn btn-white" type="button" data-md-close>@(T("Not now"))</button>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-pen me-2"></i>@(T("Sign contract"))</button>
+          </div>
+        </form>
+      </div>
+</div>
+</text>}
+</text>); }

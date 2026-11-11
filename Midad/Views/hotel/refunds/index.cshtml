@@ -1,0 +1,54 @@
+
+@{
+    int pending = Get<int>("pending");
+    List<PurchaseOrder> refundable = Get<List<PurchaseOrder>>("refundable");
+    Paginator<RefundRequest> refunds = Get<Paginator<RefundRequest>>("refunds");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Refunds"; }
+@section crumb {<text><b>@(T("Refunds"))</b></text>}
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div><h1>@(T("Refunds"))</h1><p>@(T(refunds.Total() == 1 ? ":n refund request" : ":n refund requests", new Dictionary<string, object?> { ["n"] = refunds.Total() })) · @(T(":n waiting for review", new Dictionary<string, object?> { ["n"] = pending }))</p></div>
+          @if (refundable.IsNotEmpty()) {<text>
+          <form class="d-flex gap-2" method="GET" onsubmit="if(this.o.value)location.href=this.o.value;return false;">
+            <div class="md-ico" style="min-width:220px"><select name="o" class="fld" aria-label="@(T("Order to refund"))" required>
+              <option value="">@(T("Choose a delivered order"))</option>
+              @foreach (var o in refundable) {<text><option value="@(Route("hotel.refunds.create", o))">@(o.OrderNo) · @(T("SAR")) @(Php.NumberFormat((decimal) o.Invoice.TotalAmount, 2))</option></text>}
+            </select><i class="md-ico-i bi bi-chevron-down" style="color:var(--muted)"></i></div>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-2"></i>@(T("Request refund"))</button>
+          </form>
+          </text>}
+        </div>
+        @if (refunds.Total() == 0) {<text>
+        <div class="empty">
+          <i class="bi bi-arrow-counterclockwise" style="font-size:42px;color:var(--faint)"></i>
+          <div style="font-size:20px;font-weight:500;margin-top:16px;">@(T("No refund requests"))</div>
+          <div style="font-size:14px;color:var(--muted);margin-top:7px;max-width:440px;margin-left:auto;margin-right:auto;">@(T("If a delivered order arrives damaged or incomplete, request a refund from the order page with a photo of the problem."))</div>
+        </div>
+        </text>} else {<text>
+        <div class="card-m">
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Refund"))</th><th>@(T("Order"))</th><th>@(T("Supplier"))</th><th>@(T("Requested"))</th><th class="text-end">@(T("Amount"))</th><th>@(T("Status"))</th><th></th></tr></thead>
+            <tbody>
+              @foreach (var r in refunds) {<text>
+              <tr data-href="@(Route("hotel.refunds.show", r))">
+                <td class="num" style="font-weight:500">RF-@(r.RefundId)</td>
+                <td class="num">@(r.Order.OrderNo)</td>
+                <td>@(r.Order.Contract.Bid.Supplier.CompanyName)</td>
+                <td class="num">@(r.RequestedAt.TranslatedFormat("d M Y"))</td>
+                <td class="text-end num">@(T("SAR")) @(Php.NumberFormat((decimal) r.RequestedAmount, 2))</td>
+                <td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = r.RefundStatus }))</td>
+                <td class="text-end"><a href="@(Route("hotel.refunds.show", r))" aria-label="Open RF-@(r.RefundId)"><i class="bi bi-chevron-right" style="color:var(--faint)"></i></a></td>
+              </tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_PgHotel.cshtml", With(new Dictionary<string, object?> { ["p"] = refunds, ["noun"] = "refund requests" }))
+        </text>}
+

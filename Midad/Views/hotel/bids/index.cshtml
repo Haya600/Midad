@@ -1,0 +1,42 @@
+
+@{
+    int awaiting = Get<int>("awaiting");
+    Paginator<Bid> bids = Get<Paginator<Bid>>("bids");
+    Dictionary<string, int> ranks = Get<Dictionary<string, int>>("ranks");
+    int total = Get<int>("total");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Bids"; }
+@section crumb {<text><b>@(T("Bids"))</b></text>}
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div><h1>@(T("Bids"))</h1><p>@(T(total == 1 ? ":n bid received" : ":n bids received", new Dictionary<string, object?> { ["n"] = total })) · @(T(":n awaiting your review", new Dictionary<string, object?> { ["n"] = awaiting }))</p></div>
+        </div>
+        @await Html.PartialAsync("~/Views/hotel/partials/bar.cshtml", With(new Dictionary<string, object?> { ["statuses"] = new[] { "Submitted", "Accepted", "Rejected", "Cancelled" }, ["search"] = "Search by supplier or request" }))
+        <div class="card-m">
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Request"))</th><th>@(T("Supplier"))</th><th class="text-end">@(T("Price"))</th><th class="text-end">@(T("Delivery"))</th><th class="text-end">@(T("Rank"))</th><th>@(T("Status"))</th><th></th></tr></thead>
+            <tbody>
+              @if (Php.Any(bids)) { foreach (var b in bids) {<text>
+              @{ var url = Route("hotel.requests.show", new Dictionary<string, object?> { ["0"] = b.RequestId, ["tab"] = "bids" }); }
+              <tr data-href="@(url)">
+                <td class="num" style="font-weight:500">@(b.Request.Code)<div style="font-size:12px;color:var(--muted);font-weight:400">@(b.Request.Supplies.First()?.SupplyName)</div></td>
+                <td>@(b.Supplier.CompanyName)<div style="font-size:12px;color:var(--muted)"><i class="bi bi-star-fill" style="color:var(--warn)"></i> @(Php.NumberFormat((decimal) b.Supplier.AvgRating, 1))</div></td>
+                <td class="text-end num">@(T("SAR")) @(Php.NumberFormat((decimal) b.BidPrice, 2))</td>
+                <td class="text-end num">@(b.EstimatedDeliveryDays) @(T("days"))</td>
+                <td class="text-end num">@if ((ranks["b" + b.BidId] != null)) {<text>@(T("#:rank of :total", new Dictionary<string, object?> { ["rank"] = ranks["b" + b.BidId], ["total"] = ranks[b.RequestId] }))</text>} else {<text><span style="color:var(--faint)">-</span></text>}</td>
+                <td>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["value"] = b.BidStatus }))</td>
+                <td class="text-end"><a href="@(url)" aria-label="Compare bids on @(b.Request.Code)"><i class="bi bi-chevron-right" style="color:var(--faint)"></i></a></td>
+              </tr>
+              </text>} } else {<text>
+              <tr><td colspan="7" style="color:var(--muted)">@(T("No bids yet. Suppliers usually respond within 48 hours of a request being published."))</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_PgHotel.cshtml", With(new Dictionary<string, object?> { ["p"] = bids, ["noun"] = "bids" }))
+

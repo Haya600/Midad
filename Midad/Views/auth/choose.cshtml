@@ -1,0 +1,51 @@
+
+
+@{ Layout = "~/Views/Shared/_LayoutPublic.cshtml"; }
+@{ ViewData["title"] = "Create an account"; }
+
+    <section class="sect s-cream"><div class="wrap" style="max-width:940px">
+      @await Html.PartialAsync("~/Views/auth/partials/register-head.cshtml", With(new Dictionary<string, object?> { ["step"] = 1 }))
+      <div class="ctr"><h2 style="font-size:40px">@(T("How will you use Midad?"))</h2><p class="sect-sub">@(T("You can only hold one role per account. Pick the one that matches your business."))</p></div>
+      <div class="row g-4">
+        <div class="col-12 col-lg-6"><div class="pick on" data-pick>
+          <span class="pick-i"><i class="bi bi-buildings"></i></span>
+          <h3>@(T("I am a hotel"))</h3>
+          <p>@(T("I buy supplies for a hotel and want suppliers to compete for my orders."))</p>
+          <ul>
+            <li><i class="bi bi-check2"></i>@(T("Post supply requests"))</li>
+            <li><i class="bi bi-check2"></i>@(T("Compare and accept bids"))</li>
+            <li><i class="bi bi-check2"></i>@(T("Pay by card and track refunds"))</li>
+            <li><i class="bi bi-check2"></i>@(T("Rate suppliers after each order"))</li>
+          </ul>
+          <a class="btn b-olive btn-lg b-full mt-4" href="@(Route("register.hotel"))">@(T("Continue as a hotel"))</a>
+        </div></div>
+        <div class="col-12 col-lg-6"><div class="pick" data-pick>
+          <span class="pick-i"><i class="bi bi-truck"></i></span>
+          <h3>@(T("I am a supplier"))</h3>
+          <p>@(T("I sell hotel supplies and want to bid on requests from hotels."))</p>
+          <ul>
+            <li><i class="bi bi-check2"></i>@(T("Browse open supply requests"))</li>
+            <li><i class="bi bi-check2"></i>@(T("Submit competitive bids"))</li>
+            <li><i class="bi bi-check2"></i>@(T("Sign contracts digitally"))</li>
+            <li><i class="bi bi-check2"></i>@(T("Build a public star rating"))</li>
+          </ul>
+          <a class="btn b-line btn-lg b-full mt-4" href="@(Route("register.supplier"))">@(T("Continue as a supplier"))</a>
+        </div></div>
+      </div>
+    </div></section>
+
+@{ Push("scripts", @<text>
+<script>
+document.querySelectorAll('[data-pick]').forEach(function (card) {
+  card.addEventListener('click', function () {
+    document.querySelectorAll('[data-pick]').forEach(function (c) {
+      var on = c === card;
+      c.classList.toggle('on', on);
+      var b = c.querySelector('.btn');
+      b.classList.toggle('b-olive', on);
+      b.classList.toggle('b-line', !on);
+    });
+  });
+});
+</script>
+</text>); }

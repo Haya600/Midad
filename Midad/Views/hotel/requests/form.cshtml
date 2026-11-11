@@ -1,0 +1,149 @@
+
+@{
+    bool canPublish = Get<bool>("canPublish");
+    string? logoUrl = Get<string?>("logoUrl");
+    string? requestedBy = Get<string?>("requestedBy");
+    SupplyRequest? sr = Get<SupplyRequest?>("sr");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = Php.B(sr) ? "Edit " + sr.Code : "New supply request"; }
+@section crumb {<text>
+  @if (Php.B(sr)) {<text><a href="@(Route("hotel.requests.index"))" class="md-link" style="color:inherit">@(T("Supply Requests"))</a> <span style="color:var(--faint)">/</span> <a href="@(Route("hotel.requests.show", sr))" class="md-link" style="color:inherit">@(sr.Code)</a> <span style="color:var(--faint)">/</span> <b>@(T("Edit"))</b>
+  </text>} else {<text><a href="@(Route("hotel.requests.index"))" class="md-link" style="color:inherit">@(T("Supply Requests"))</a> <span style="color:var(--faint)">/</span> <b>@(T("New request"))</b></text>}
+</text>}
+@{
+var published = Php.B(sr) && sr.RequestStatus != "Draft";
+var items = Old("items", sr ? sr.Supplies.Map( (s) => s.Only("supply_name", "category", "quantity", "unit_of_measure", "description")).All() : new[] { new List<object?>() });
+var hasErr = errors.Any();
+var itemErrs = Php.Collect(errors.Keys()).Filter( (k) => Php.StrStartsWith(k, "items.")).Count();
+var fieldErrs = Php.Count(Php.ArrayUnique(Php.ArrayMap( (k) => Php.PregReplace("/^(items\\.\\d+\\.[a-z_]+).*$/", "$1", k), errors.Keys())));
+var date = Old("required_delivery_date", sr?.RequiredDeliveryDate?.ToDateString());
+var prio = Old("priority", sr?.Priority);
+var draftAction = Old("action") == "draft";
+}
+
+        <div class="ph"><div><h1>@(Php.B(sr) ? T("Edit :code", new Dictionary<string, object?> { ["code"] = sr.Code }) : T("New supply request"))</h1><p>@(T("Describe what you need. Suppliers bid on price and delivery time."))</p></div></div>
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        @if (Php.B(hasErr)) {<text>
+        <div class="al al-dan mb-4"><i class="bi bi-exclamation-triangle-fill"></i><div><div class="al-t">@(T(draftAction ? "This draft could not be saved" : "This request could not be published"))</div><div class="al-b">@(MidadRequest.Attention(fieldErrs, draftAction ? "save again. Everything you entered has been kept." : "publish again. Everything you entered has been kept."))</div></div></div>
+        </text>} else if (!Php.B(canPublish) && !Php.B(published)) {<text>
+        <div class="al al-warn mb-4"><i class="bi bi-exclamation-circle-fill"></i><div><div class="al-t">@(T("Your hotel is being verified"))</div><div class="al-b">@(T("We verify every business before it can post requests. You can save this request as a draft and publish it once the verification is complete."))</div></div></div>
+        </text>}
+
+        
+        <div class="al al-dan mb-4" data-fail hidden>
+          <i class="bi bi-wifi-off"></i>
+          <div style="flex:1">
+            <div class="al-t">@(T(published ? "The request could not be saved" : "The request could not be published"))</div>
+            <div class="al-b">@(T("The connection to the server was lost. Nothing was saved, and everything you entered is still here. Try again, or save it as a draft to keep it locally."))</div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-danger btn-sm" type="button" data-retry><i class="bi bi-arrow-clockwise me-1"></i>@(T("Try again"))</button>
+              <button class="btn btn-white btn-sm" type="button" data-local-draft>@(T("Save as draft"))</button>
+            </div>
+          </div>
+        </div>
+        <div class="al al-info mb-4" data-restored hidden><i class="bi bi-info-circle-fill"></i><div><div class="al-t">@(T("Your unsaved request was restored"))</div><div class="al-b">@(T("It was kept on this device when the connection failed. Check it, then publish again."))</div></div></div>
+
+        <form id="reqForm" method="POST" action="@(Php.B(sr) ? Route("hotel.requests.update", sr) : Route("hotel.requests.store"))" data-local-key="@(Php.B(sr) ? "" : "midad.requestDraft." + Auth().Id())" enctype="multipart/form-data" data-has-logo="@(Php.B(logoUrl) ? 1 : 0)">
+          @Html.AntiForgeryToken()
+          @if (Php.B(sr)) {<text> <input type="hidden" name="_method" value="PUT"> </text>}
+          <input type="hidden" name="action" value="@(Old("action", "publish"))">
+        <div class="row g-4">
+          <div class="col-12 col-lg-8">
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Request details"))</div></div>
+              <div class="card-p">
+                <div class="row g-3">
+                  @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12 col-md-4", ["name"] = "required_delivery_date", ["label"] = "Required delivery date", ["type"] = "date", ["value"] = date, ["hint"] = hasErr ? null : "When the goods must arrive", ["required"] = true, ["min"] = Php.Today().AddDay().ToDateString(), ["data-req"] = true, ["data-date"] = true }))
+                  @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12 col-md-4", ["name"] = "priority", ["label"] = "Priority", ["type"] = "select", ["placeholder"] = $"{Php.E(T("Select priority"))}", ["options"] = Config("midad.priorities"), ["value"] = prio, ["hint"] = hasErr ? null : (prio ? "Suppliers see this on the request" : "High, Medium or Low"), ["required"] = true, ["data-req"] = true, ["data-prio"] = true }))
+                  @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "col-12 col-md-4", ["name"] = "requested_by", ["label"] = "Requested by", ["type"] = "static", ["value"] = requestedBy, ["hint"] = hasErr ? null : "From your signed-in account" }))
+                </div>
+              </div>
+            </div>
+
+            <div class="card-m mb-3">
+              <div class="card-h"><div class="card-t">@(T("Items requested"))</div>
+                @if (Php.B(itemErrs)) {<text><span style="font-size:13px;color:var(--danger)">@(T(":n items · :m errors", new Dictionary<string, object?> { ["n"] = Php.Count(items), ["m"] = itemErrs }))</span>
+                </text>} else {<text><span style="font-size:13px;color:var(--muted)" data-items-added>@(T(":n items added", new Dictionary<string, object?> { ["n"] = Php.Collect(items).Filter( (x) => Php.Filled(x["supply_name"] ?? null)).Count() }))</span></text>}
+              </div>
+              <div class="card-p" data-items>
+                @foreach (var ((i, item), loop) in Php.Loop(Php.Pairs(items))) {<text>
+                  @await Html.PartialAsync("~/Views/hotel/requests/_item.cshtml", With(new Dictionary<string, object?> { ["i"] = i, ["item"] = item, ["n"] = loop.Iteration, ["count"] = Php.Count(items) }))
+                </text>}
+                <button type="button" class="dash" data-add-item><i class="bi bi-plus-lg me-2"></i>@(T("Add another item"))</button>
+                
+                <div class="item-card mt-3" data-logo-box @Html.Raw((!(errors.Has("logo") || Php.Collect(items).Contains( (x) => ! Php.Empty(x["custom"]) || Specs.WantsLogo(x["description"] ?? null)))) ? $" hidden " : "")>
+                  <div class="item-n mb-3">@(T("Customization"))</div>
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    @if (Php.B(logoUrl)) {<text><img src="@(logoUrl)" alt="@(T("Hotel logo"))" style="width:64px;height:64px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:8px"></text>}
+                    @await Html.PartialAsync("~/Views/Shared/_Field.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "hotel", ["col"] = "flex-grow-1", ["name"] = "logo", ["label"] = "Hotel logo", ["type"] = "file", ["accept"] = "image/png,image/jpeg", ["hint"] = logoUrl ? "Upload a new file only to replace the current logo. PNG or JPG, up to 2 MB." : "PNG or JPG, up to 2 MB. Printed on the items marked for customization.", ["data-logo-input"] = true }))
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="foot">
+              <a class="btn btn-ghost" href="@(Php.B(sr) ? Route("hotel.requests.show", sr) : Route("hotel.requests.index"))"><i class="bi bi-arrow-left me-2"></i>@(T("Cancel"))</a>
+              <div class="d-flex gap-2">
+                @if (Php.B(published)) {<text>
+                <button class="btn btn-primary" type="button" data-submit="publish">@(T("Save changes"))</button>
+                </text>} else {<text>
+                <button class="btn btn-outline" type="button" data-submit="draft">@(T("Save as draft"))</button>
+                <button class="btn btn-primary" type="button" data-publish @Html.Raw((! canPublish) ? "disabled" : "")>@(T("Publish request"))</button>
+                </text>}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-4">
+            <div class="card-m card-p mb-3">
+              <div class="card-t mb-3">@(T("Request summary"))</div>
+              <dl class="kv mb-0">
+                <dt>@(T("Items"))</dt><dd data-sum-items @Html.Raw((Php.B(itemErrs)) ? $" style=\"color:var(--danger)\" " : "")>@if (Php.B(itemErrs)) {<text>@(T(":n items · :m need attention", new Dictionary<string, object?> { ["n"] = Php.Count(items), ["m"] = itemErrs }))</text>}</dd>
+                <dt>@(T("Needed by"))</dt><dd class="num" data-sum-date @Html.Raw((errors.Has("required_delivery_date")) ? $" style=\"color:var(--danger)\" " : "")>@if (errors.Has("required_delivery_date")) {<text>@(T("Date has passed"))</text>}</dd>
+                <dt>@(T("Priority"))</dt><dd data-sum-prio></dd>
+                <dt data-sum-k>@(T("Visible to"))</dt><dd style="margin-bottom:0" data-sum-v>@(T(published || ! draftAction ? "All active suppliers" : "Only you (draft)"))</dd>
+              </dl>
+            </div>
+            @if (!(Php.B(hasErr))) {<text>
+            <div class="al al-info" data-next><i class="bi bi-info-circle-fill"></i><div><div class="al-t">@(T("What happens next"))</div><div class="al-b">@(T("Once published, suppliers bid on price and delivery time. The cheapest bid is shown first, and you choose which to accept."))</div></div></div>
+            </text>}
+          </div>
+        </div>
+        </form>
+
+        <template id="itemTpl">@await Html.PartialAsync("~/Views/hotel/requests/_item.cshtml", With(new Dictionary<string, object?> { ["i"] = "__I__", ["item"] = new List<object?>(), ["n"] = 0, ["count"] = 2 }))</template>
+
+
+@{ Push("modals", @<text>
+
+<div class="md-modal" id="confirmPublish" hidden role="dialog" aria-modal="true" aria-labelledby="confirmPublishT">
+      <div class="scrim">
+        <div class="mdl">
+          <div class="mdl-h"><div class="mdl-t" id="confirmPublishT">@(T("Publish this supply request?"))</div></div>
+          <div class="mdl-b">
+            <p style="margin:0 0 16px;">@(T("It becomes visible to every active supplier on Midad, and they can begin bidding straight away."))</p>
+            <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:16px;">
+              <div class="d-flex justify-content-between mb-2" style="font-size:13px;"><span style="color:var(--muted)">@(T("Items"))</span><span style="font-weight:500" data-c-items></span></div>
+              <div class="d-flex justify-content-between mb-2" style="font-size:13px;"><span style="color:var(--muted)">@(T("Required delivery date"))</span><span class="num" style="font-weight:500" data-c-date></span></div>
+              <div class="d-flex justify-content-between" style="font-size:13px;"><span style="color:var(--muted)">@(T("Priority"))</span><span style="font-weight:500" data-c-prio></span></div>
+            </div>
+            
+            <div class="mt-3" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <div style="font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--surface-alt);padding:9px 16px;border-bottom:1px solid var(--border)">@(T("Items requested"))</div>
+              <div data-c-list style="max-height:260px;overflow-y:auto"></div>
+            </div>
+            <p style="margin:16px 0 0;font-size:13px;color:var(--muted);">@(T("You can still edit or cancel this request at any point before a contract is signed."))</p>
+          </div>
+          <div class="mdl-f">
+            <button class="btn btn-white" type="button" data-md-close>@(T("Keep editing"))</button>
+            <button class="btn btn-primary" type="button" data-submit="publish">@(T("Publish request"))</button>
+          </div>
+        </div>
+      </div>
+</div>
+</text>); }
+
+@{ Push("scripts", @<text>@await Html.PartialAsync("~/Views/hotel/requests/_form-js.cshtml", With(new Dictionary<string, object?> {  }))</text>); }

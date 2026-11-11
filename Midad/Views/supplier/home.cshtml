@@ -1,0 +1,86 @@
+
+@{
+    string? awardedYear = Get<string?>("awardedYear");
+    int hotelsPosting = Get<int>("hotelsPosting");
+    List<SupplyRequest> matched = Get<List<SupplyRequest>>("matched");
+    int matchedCount = Get<int>("matchedCount");
+    Dictionary<int, Bid> myBids = Get<Dictionary<int, Bid>>("myBids");
+    int openCount = Get<int>("openCount");
+    Supplier? supplier = Get<Supplier?>("supplier");
+    int? winRate = Get<int?>("winRate");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutSupplier.cshtml"; ViewData["footer"] = true; }
+@{ ViewData["title"] = "Bid on hotel supply requests"; }
+
+    <section class="hero"><div class="wrap hero-in">
+      <div class="hero-l">
+        <span class="eyebrow"><i class="bi bi-broadcast"></i>@(T(openCount == 1 ? ":n request open right now" : ":n requests open right now", new Dictionary<string, object?> { ["n"] = openCount }))</span>
+        <h1>@(T("Hotels post what they need."))<br><em>@(T("You name your price."))</em></h1>
+        <p class="hero-p">@(T("Browse live supply requests from hotels across the Eastern Province, bid on price and delivery time, and win the contract directly. No agents in the middle."))</p>
+        <form class="hsearch" method="GET" action="@(Route("supplier.requests.index"))" role="search">
+          <label class="f m-0"><i class="bi bi-search"></i><input type="search" name="q" class="md-bare" style="color:var(--ink)" placeholder="@(T("Search by product, hotel or city"))" aria-label="@(T("Search by product, hotel or city"))"></label>
+          <button class="btn b-olive btn-lg" type="submit">@(T("Search"))</button>
+        </form>
+        <div class="trust">
+          <div class="trust-i"><div class="n">@(hotelsPosting)</div><div class="l">@(T("Hotels posting"))</div></div>
+          <div class="trust-i"><div class="n">@(awardedYear)</div><div class="l">@(T("Awarded this year"))</div></div>
+          <div class="trust-i"><div class="n">@(Php.IsNull(winRate) ? "-" : winRate + "%")</div><div class="l">@(T("Your win rate"))</div></div>
+        </div>
+      </div>
+
+      <div class="hero-r">
+        @await Html.PartialAsync("~/Views/svg/hero-supplier.cshtml", With(new Dictionary<string, object?> {  }))
+      </div>
+    </div></section>
+
+    <section class="sect sect-white"><div class="wrap">
+      <div style="text-align:center;margin-bottom:46px">
+        <span class="kicker">@(T("How it works"))</span>
+        <h2>@(T("Three steps from request to contract"))</h2>
+      </div>
+      <div class="row g-4">
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">1</span><h3>@(T("Find a request"))</h3><p>@(T("Hotels publish exactly what they need: product, quantity, specifications and the date it must arrive. Filter by category and city to see only what you can supply."))</p></div></div>
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">2</span><h3>@(T("Bid your price"))</h3><p>@(T("Set your unit prices and how many days you need. Midad shows the hotel your total with VAT, and ranks bids by price first, delivery time second."))</p></div></div>
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">3</span><h3>@(T("Win the contract"))</h3><p>@(T("If the hotel accepts, a contract is generated for both of you to sign digitally. The purchase order and invoice follow automatically."))</p></div></div>
+      </div>
+    </div></section>
+
+    <section class="sect sect-cream"><div class="wrap">
+      <div class="sect-head">
+        <div><span class="kicker">@(T("Open now"))</span><h2>@(T("Requests matched to you"))</h2><p class="sect-sub">@(T("Based on the categories on your supplier profile."))</p></div>
+        <a href="@(Route("supplier.requests.index"))" class="link">@(T("Browse all :n", new Dictionary<string, object?> { ["n"] = openCount })) <i class="bi bi-arrow-right ms-1"></i></a>
+      </div>
+
+      @if (Php.Any(matched)) { foreach (var (r, loop) in Php.Loop(matched)) {<text>
+        @await Html.PartialAsync("~/Views/supplier/partials/rq-card.cshtml", With(new Dictionary<string, object?> { ["r"] = r, ["feat"] = loop.First, ["myBid"] = myBids.Get(r.RequestId) }))
+      </text>} } else {<text>
+        <div class="lock">@(T("No open requests in your categories right now."))</div>
+      </text>}
+    </div></section>
+
+    <section class="sect sect-white"><div class="wrap">
+      <div class="row g-5">
+        <div class="col-12 col-lg-5">
+          <span class="kicker">@(T("Why suppliers use Midad"))</span>
+          <h2>@(T("Built for how procurement actually works"))</h2>
+          <p class="sect-sub">@(T("Every request carries the specifications and the delivery date up front, so you price once and price accurately."))</p>
+        </div>
+        <div class="col-12 col-lg-7">
+          <div class="row g-4">
+            <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-eye"></i></span><div><h3>@(T("Full specifications"))</h3><p>@(T("Material, size, grade and quantity are stated before you bid: no guesswork, no revised quotes."))</p></div></div></div>
+            <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-graph-up"></i></span><div><h3>@(T("Transparent ranking"))</h3><p>@(T("Bids are ranked by price, then delivery time. You always know what wins."))</p></div></div></div>
+            <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-shield-check"></i></span><div><h3>@(T("Digital contracts"))</h3><p>@(T("Both parties sign in the platform. The purchase order and invoice generate automatically."))</p></div></div></div>
+            <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-star"></i></span><div><h3>@(T("Ratings that carry"))</h3><p>@(T("Deliver on time and your rating follows you to every request you bid on."))</p></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="sect sect-cream" style="padding-top:0"><div class="wrap">
+      <div class="cta">
+        <div><h2>@(T("Ready to bid on your next contract?"))</h2><p>@(T(openCount == 1 ? ":n request is open right now" : ":n requests are open right now", new Dictionary<string, object?> { ["n"] = openCount }))@if (Php.B(supplier)) {<text>@(T(", :m of them in your categories", new Dictionary<string, object?> { ["m"] = matchedCount }))</text>}@(T("."))</p></div>
+        <a class="btn b-olive btn-lg" href="@(Route("supplier.requests.index"))" style="flex:none"><i class="bi bi-search"></i>@(T("Browse open requests"))</a>
+      </div>
+    </div></section>
+

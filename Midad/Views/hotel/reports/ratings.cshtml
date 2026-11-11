@@ -1,0 +1,68 @@
+
+@{
+    double? avgGiven = Get<double?>("avgGiven");
+    List<Rating> latest = Get<List<Rating>>("latest");
+    int ratedCount = Get<int>("ratedCount");
+    List<Midad.Controllers.Hotel.RatingReportController.Row> rows = Get<List<Midad.Controllers.Hotel.RatingReportController.Row>>("rows");
+    int suppliersUsed = Get<int>("suppliersUsed");
+    int toRate = Get<int>("toRate");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutHotel.cshtml"; }
+@{ ViewData["title"] = "Supplier Ratings"; }
+@section crumb {<text><b>@(T("Supplier Ratings"))</b></text>}
+@{ var stars =  (v) => v == null ? "-" : Php.NumberFormat((decimal) v, 1); }
+
+        @await Html.PartialAsync("~/Views/Shared/_FlashHotel.cshtml", With(new Dictionary<string, object?> {  }))
+        <div class="ph">
+          <div><h1>@(T("Supplier Ratings"))</h1><p>@(T("How the suppliers you work with have performed"))</p></div>
+          @if (Php.B(toRate)) {<text><a class="btn btn-primary btn-lg" href="@(Route("hotel.orders.index", new Dictionary<string, object?> { ["status"] = "Completed" }))"><i class="bi bi-star me-2"></i>@(T(toRate == 1 ? "Rate :n completed order" : "Rate :n completed orders", new Dictionary<string, object?> { ["n"] = toRate }))</a></text>}
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Suppliers used"))</div><div class="stat-v">@(suppliersUsed)</div><div class="stat-d">@(T("With at least one order"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Ratings given"))</div><div class="stat-v">@(ratedCount)</div><div class="stat-d">@(T("One per completed order"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Average you gave"))</div><div class="stat-v">@(stars(avgGiven))</div><div class="stat-d">@(T("Out of 5 stars"))</div></div></div>
+          <div class="col-12 col-sm-6 col-lg-3"><div class="card-m card-p"><div class="stat-k">@(T("Waiting for a rating"))</div><div class="stat-v">@(toRate)</div><div class="stat-d">@(T("Completed orders"))</div></div></div>
+        </div>
+
+        <div class="card-m mb-4">
+          <div class="card-h"><div class="card-t">@(T("Suppliers"))</div><span style="font-size:13px;color:var(--muted)">@(T("Best overall rating first"))</span></div>
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Supplier"))</th><th>@(T("City"))</th><th class="text-end">@(T("Orders"))</th><th class="text-end">@(T("Completed"))</th><th class="text-end">@(T("On time"))</th><th class="text-end">@(T("Your rating"))</th><th class="text-end">@(T("Overall rating"))</th></tr></thead>
+            <tbody>
+              @if (Php.Any(rows)) { foreach (var r in rows) {<text>
+              <tr>
+                <td style="font-weight:500">@(r.Supplier.CompanyName)</td>
+                <td>@(T(r.Supplier.City))</td>
+                <td class="text-end num">@(r.Orders)</td>
+                <td class="text-end num">@(r.Completed)</td>
+                <td class="text-end num">@(Php.IsNull(r.OnTime) ? "-" : r.OnTime + "%")</td>
+                <td class="text-end num">@if (Php.B(r.MineCount)) {<text><i class="bi bi-star-fill" style="color:var(--warn)"></i> @(stars(r.Mine))</text>} else {<text><span style="color:var(--faint)">@(T("Not rated"))</span></text>}</td>
+                <td class="text-end num"><i class="bi bi-star-fill" style="color:var(--warn)"></i> @(stars(r.Supplier.AvgRating))</td>
+              </tr>
+              </text>} } else {<text>
+              <tr><td colspan="7" style="color:var(--muted)">@(T("No orders yet. Suppliers appear here once you have an order with them."))</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        @if (latest.IsNotEmpty()) {<text>
+        <div class="card-m">
+          <div class="card-h"><div class="card-t">@(T("Your latest ratings"))</div></div>
+          <div class="md-table-scroll">
+          <table class="tbl">
+            <thead><tr><th>@(T("Date"))</th><th>@(T("Supplier"))</th><th>@(T("Order"))</th><th>@(T("Rating"))</th><th>@(T("Comment"))</th></tr></thead>
+            <tbody>
+              @foreach (var l in latest) {<text>
+              <tr><td class="num">@(l.CreatedAt.TranslatedFormat("d M Y"))</td><td>@(l.Supplier.CompanyName)</td><td class="num">@(l.Order.OrderNo)</td><td style="color:var(--warn);white-space:nowrap">@for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= l.StarRating ? "bi-star-fill" : "bi-star")"></i></text>}</td><td style="color:var(--muted);font-size:13px">@(l.ReviewComment)</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+        </text>}
+

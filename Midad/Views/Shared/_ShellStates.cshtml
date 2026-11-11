@@ -1,0 +1,117 @@
+
+@{
+    string? sheet = Get<string?>("sheet");
+}
+@{
+
+    
+    
+    
+    
+    $variants = [
+        'md-hotel' => [
+            'btn-primary'  => ['var(--primary)', 'var(--primary)', '#fff'],
+            'btn-accent'   => ['var(--accent)', 'var(--accent)', '#fff'],
+            'btn-outline'  => ['transparent', 'var(--primary)', 'var(--primary-dark)'],
+            'btn-white'    => ['var(--surface)', 'var(--border-strong)', 'var(--ink)'],
+            'btn-ghost'    => ['transparent', 'transparent', 'var(--primary-dark)'],
+            'btn-danger'   => ['var(--danger)', 'var(--danger)', '#fff'],
+            'btn-disabled' => ['var(--secondary-light)', 'var(--secondary-light)', '#9B9486'],
+        ],
+        'md-public' => [
+            'b-olive' => ['var(--olive)', 'var(--olive)', '#fff'],
+            'b-taupe' => ['var(--taupe)', 'var(--taupe)', '#fff'],
+            'b-line'  => ['var(--white)', 'var(--line-2)', 'var(--ink)'],
+            'b-ghost' => ['transparent', 'transparent', 'var(--ink-2)'],
+            'b-white' => ['#fff', '#fff', 'var(--olive)'],
+            'b-off'   => ['#E7E2D7', '#E7E2D7', '#A9A296'],
+        ],
+        'md-supplier' => [
+            'b-olive' => ['var(--olive)', 'var(--olive)', '#fff'],
+            'b-taupe' => ['var(--taupe)', 'var(--taupe)', '#fff'],
+            'b-line'  => ['var(--white)', 'var(--line-2)', 'var(--ink)'],
+            'b-soft'  => ['var(--olive-tint)', 'transparent', 'var(--olive)'],
+            'b-ghost' => ['transparent', 'transparent', 'var(--ink-2)'],
+            'b-dang'  => ['var(--dang)', 'var(--dang)', '#fff'],
+            'b-off'   => ['#E7E2D7', '#E7E2D7', '#A9A296'],
+        ],
+    ][$sheet];
+}
+<style>
+@foreach (var (cls, $bg, $bd, $fg]) in Php.Pairs(variants)) {<text>
+.btn.@(cls){--bs-btn-hover-bg:@(bg);--bs-btn-hover-border-color:@(bd);--bs-btn-hover-color:@(fg);--bs-btn-active-bg:@(bg);--bs-btn-active-border-color:@(bd);--bs-btn-active-color:@(fg);--bs-btn-disabled-bg:@(bg);--bs-btn-disabled-border-color:@(bd);--bs-btn-disabled-color:@(fg);--bs-btn-disabled-opacity:1}
+</text>}
+a.btn{text-decoration:none}
+
+input.fld,select.fld,textarea.fld{display:block;font-family:inherit;line-height:1.5}
+.fld::placeholder{color:var(--faint);opacity:1}
+select.fld{appearance:none;-webkit-appearance:none;cursor:pointer}
+select.fld:has(option[value=""]:checked){color:var(--faint)}
+select.fld option{color:var(--ink)}
+.fld:focus{outline:0;@(sheet == "md-hotel" ? "border-color:var(--primary);box-shadow:0 0 0 3px rgba(147,133,115,.18)" : "border-color:var(--olive)")}
+.fld.fld-err:focus{border-color:@(sheet == "md-hotel" ? "var(--danger)" : "var(--dang)")}
+.md-ico{position:relative;flex:1;min-width:0}
+.md-ico > .fld{padding-right:42px}
+.md-ico-i{position:absolute;right:@(sheet == "md-hotel" ? "13px" : "15px");top:50%;transform:translateY(-50%);pointer-events:none}
+.md-eye{pointer-events:auto;background:none;border:0;padding:0;line-height:1;cursor:pointer}
+input[type=date].fld::-webkit-calendar-picker-indicator{position:absolute;right:0;top:0;width:44px;height:100%;opacity:0;cursor:pointer}
+input[type=number].fld{-moz-appearance:textfield}
+input[type=number].fld::-webkit-inner-spin-button,input[type=number].fld::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+.md-bare{border:0;outline:0;background:transparent;padding:0;margin:0;font:inherit;color:inherit;flex:1;min-width:0;width:100%}
+.md-bare::placeholder{color:var(--faint);opacity:1}
+label.fld:focus-within{ @(sheet == "md-hotel" ? "border-color:var(--primary);box-shadow:0 0 0 3px rgba(147,133,115,.18)" : "border-color:var(--olive)") }
+
+select.ig-add{appearance:none;-webkit-appearance:none;cursor:pointer;font-family:inherit;line-height:1.5}
+select.ig-add:focus{outline:0;border-color:var(--primary)}
+button.dash{display:block;width:100%}
+
+.md-cb{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.md-cb + i + i{display:none}
+.md-cb:checked + i{display:none}
+.md-cb:checked + i + i{display:inline-block}
+.md-cb:focus-visible + i,.md-cb:focus-visible + i + i{outline:2px solid currentColor;outline-offset:2px;border-radius:3px}
+label:has(> .md-cb){cursor:pointer}
+.md-link{text-decoration:none}
+.md-hide{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+
+.md-chip{cursor:pointer;position:relative}
+.md-chip .bi-check2{display:none}
+.md-chip:has(.md-hide:checked) .bi-check2{display:inline-block}
+.md-chip:has(.md-hide:focus-visible){outline:2px solid var(--olive,var(--accent));outline-offset:2px}
+.pick{cursor:pointer}
+
+.md-backbar{display:flex;align-items:center;gap:10px;padding-top:22px;font-size:14px;font-weight:600;color:var(--faint)}
+.md-backbar a{color:var(--olive)}
+.md-backbar + .body-pad{padding-top:20px}
+
+.md-modal{position:fixed;inset:0;z-index:1080;overflow-y:auto}
+.md-modal[hidden]{display:none}
+.md-modal > .scrim{min-height:100%}
+body.md-modal-open{overflow:hidden}
+tr[data-href]{cursor:pointer}
+
+@@media (max-width:767.98px){ .md-stack{flex-direction:column;align-items:stretch!important} .md-stack > .btn,.md-stack > form,.md-stack > form .btn{width:100%} }
+
+.md-acct{position:relative;cursor:pointer}
+.md-acct-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:200px;z-index:1070;padding:6px 0;
+  background:@(sheet == "md-hotel" ? "var(--surface)" : "var(--white)");border:1px solid @(sheet == "md-hotel" ? "var(--border)" : "var(--line)");
+  border-radius:@(sheet == "md-hotel" ? "8px" : "var(--r-m)");box-shadow:@(sheet == "md-hotel" ? "0 20px 50px rgba(43,38,32,.3)" : "var(--sh-3)")}
+.md-acct.open .md-acct-menu{display:block}
+.md-acct-menu a,.md-acct-menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 16px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none}
+
+.md-bell{display:inline-flex;align-items:center}
+.md-bell-n{position:absolute;top:-6px;right:-8px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;color:#fff;font-size:10.5px;font-weight:700;line-height:17px;text-align:center}
+.md-bell-menu{width:340px;max-width:calc(100vw - 32px);padding:0;max-height:440px;overflow-y:auto}
+.md-bell-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid @(sheet == "md-hotel" ? "var(--border)" : "var(--line)")}
+.md-bell-h b{font-size:14px}
+.md-acct-menu .md-bell-all{width:auto;padding:0;font-size:12.5px;color:var(--muted);text-decoration:underline}
+.md-acct-menu .md-bell-i{display:flex;flex-direction:column;gap:3px;padding:11px 16px;font-size:13.5px;line-height:1.45;white-space:normal;border-bottom:1px solid @(sheet == "md-hotel" ? "var(--border)" : "var(--line)")}
+.md-bell-i:last-child{border-bottom:0}
+.md-bell-i.unread{background:@(sheet == "md-hotel" ? "var(--info-tint)" : "var(--info-bg)")}
+.md-bell-i.unread span{font-weight:600}
+.md-bell-i small{color:var(--muted);font-size:12px}
+.md-bell-empty{padding:18px 16px;color:var(--muted);font-size:13.5px;text-align:center}
+[dir="rtl"] .md-bell-n{right:auto;left:-8px}
+[dir="rtl"] .md-acct-menu .md-bell-i{text-align:right}
+</style>

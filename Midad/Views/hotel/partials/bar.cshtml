@@ -1,0 +1,15 @@
+
+@{
+    dynamic extra = ViewBag.extra;
+    string? search = Get<string?>("search");
+    string[] statuses = Get<string[]>("statuses");
+}
+
+        <form class="bar" method="GET" action="@(UrlTo().Current())">
+          @if (!Php.Empty(search)) {<text><label class="fld d-flex align-items-center gap-2 m-0" style="max-width:320px;"><i class="bi bi-search" style="color:var(--muted)"></i><input type="search" name="q" value="@(Req("q"))" placeholder="@(T(search))" maxlength="120" class="md-bare" aria-label="@(T(search))"></label></text>}
+          @if (!Php.Empty(statuses)) {<text><div class="md-ico" style="max-width:200px;"><select name="status" class="fld" onchange="this.form.submit()" aria-label="@(T("Status"))">
+            <option value="">@(T("All statuses"))</option>
+            @foreach (var s in statuses) {<text><option value="@(s)" @Html.Raw((Req("status") == s) ? "selected" : "")>@(T(s))</option></text>}
+          </select><i class="md-ico-i bi bi-chevron-down" style="color:var(--muted)"></i></div></text>}
+          @Html.Raw(extra ?? "")
+        </form>

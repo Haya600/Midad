@@ -1,0 +1,63 @@
+
+@{
+    Contract? contract = Get<Contract?>("contract");
+}
+
+@{ Layout = "~/Views/Shared/_LayoutPublic.cshtml"; ViewData["bare"] = true; }
+@{ ViewData["title"] = "Contract " + contract.ContractNo; }
+@{
+var bid = contract.Bid;
+var sr = bid.Request;
+var vat = (decimal) contract.ContractValue * Config("midad.vat_rate");
+}
+@{ Push("head", @<text>
+<style>@@media print{ .md-noprint{display:none!important} body{background:#fff} .cd{box-shadow:none;border:0} .sect{padding:0!important} }</style>
+</text>); }
+
+    <section class="sect s-cream" style="padding:48px 0"><div class="wrap" style="max-width:860px">
+      <div class="d-flex justify-content-between align-items-center mb-4 md-noprint">
+        <a class="btn b-ghost" href="@(UrlTo().Previous())"><i class="bi bi-arrow-left"></i>@(T("Back"))</a>
+        <button class="btn b-olive" type="button" onclick="window.print()"><i class="bi bi-printer"></i>@(T("Print or save as PDF"))</button>
+      </div>
+      <div class="cd"><div class="cd-p" style="padding:44px 48px">
+        <div class="d-flex justify-content-between align-items-start mb-4" style="gap:20px">
+          <div class="brand">@await Html.PartialAsync("~/Views/svg/logo-header.cshtml", With(new Dictionary<string, object?> {  }))<span class="brand-n">@(T("Midad"))</span></div>
+          <div class="text-end"><div class="kicker">@(T("Supply contract"))</div><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">@(contract.ContractNo)</div><div style="font-size:13.5px;color:var(--muted)">@(T("Generated :date", new Dictionary<string, object?> { ["date"] = contract.GeneratedAt.TranslatedFormat("j F Y") }))</div></div>
+        </div>
+        <div class="row g-4 mb-4" style="padding-top:24px;border-top:1px solid var(--line)">
+          <div class="col-6"><div class="kicker mb-2" style="color:var(--muted)">@(T("Buyer (hotel)"))</div><div style="font-weight:700">@(sr.Hotel.HotelName)</div><div style="font-size:14px;color:var(--muted)">@(T(sr.Hotel.City)) · @(T("CR")) @(sr.Hotel.CommercialRegNo)<br>@(sr.Hotel.ContactPerson)</div></div>
+          <div class="col-6"><div class="kicker mb-2" style="color:var(--muted)">@(T("Supplier"))</div><div style="font-weight:700">@(bid.Supplier.CompanyName)</div><div style="font-size:14px;color:var(--muted)">@(T(bid.Supplier.City)) · @(T("CR")) @(bid.Supplier.CommercialRegNo)<br>@(bid.Supplier.ContactPerson)</div></div>
+        </div>
+        <div class="cd-t mb-3">@(T("Goods"))</div>
+        <table class="w-100 mb-4" style="font-size:14px;border-collapse:collapse">
+          <thead><tr style="border-bottom:1px solid var(--line-2);color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em"><th class="py-2">#</th><th class="py-2">@(T("Product"))</th><th class="py-2">@(T("Specifications"))</th><th class="py-2 text-end">@(T("Quantity"))</th></tr></thead>
+          <tbody>
+            @foreach (var (s, loop) in Php.Loop(sr.Supplies)) {<text>
+            <tr style="border-bottom:1px solid var(--line)"><td class="py-2">@(loop.Iteration)</td><td class="py-2" style="font-weight:600">@(s.SupplyName)</td><td class="py-2" style="color:var(--muted)">@(s.Description)</td><td class="py-2 text-end">@(Php.NumberFormat(s.Quantity)) @(s.UnitOfMeasure)</td></tr>
+            </text>}
+          </tbody>
+        </table>
+        <div class="row g-4 mb-4">
+          <div class="col-6">
+            <div class="cd-t mb-3">@(T("Price"))</div>
+            <div style="font-size:14px">@(T("Contract value:")) <b>@(T("SAR")) @(Php.NumberFormat((decimal) contract.ContractValue, 2))</b> @(T("excl. VAT"))<br>@(T("VAT at 15%:")) @(T("SAR")) @(Php.NumberFormat(vat, 2))<br>@(T("Total payable:")) <b>@(T("SAR")) @(Php.NumberFormat((decimal) contract.ContractValue + vat, 2))</b></div>
+          </div>
+          <div class="col-6">
+            <div class="cd-t mb-3">@(T("Delivery"))</div>
+            <div style="font-size:14px">@(T("Delivery within :n days of signature", new Dictionary<string, object?> { ["n"] = bid.EstimatedDeliveryDays }))<br>@(T("Agreed delivery date:")) <b>@(contract.AgreedDeliveryDate.TranslatedFormat("j F Y"))</b><br>@(T("Delivered to:")) @(sr.Hotel.HotelName), @(T(sr.Hotel.City))</div>
+          </div>
+        </div>
+        <div class="cd-t mb-3">@(T("Terms"))</div>
+        <ol style="font-size:14px;color:var(--ink-2);line-height:1.65;padding-left:18px" class="mb-5">
+          <li>@(T("The supplier delivers the goods above, to the stated specifications, by the agreed delivery date."))</li>
+          <li>@(T("A purchase order and invoice are issued through Midad once both parties have signed. The hotel pays the invoice by card through Midad."))</li>
+          <li>@(T("The hotel may request a refund through Midad for goods delivered damaged or incomplete; Midad reviews each request."))</li>
+          <li>@(T("Midad charges the supplier a platform commission of 10% of the contract value."))</li>
+        </ol>
+        <div class="row g-5">
+          <div class="col-6"><div style="border-top:1px solid var(--ink);padding-top:10px;margin-top:48px;font-size:13.5px">@(T("For the hotel: name, signature and date"))</div></div>
+          <div class="col-6"><div style="border-top:1px solid var(--ink);padding-top:10px;margin-top:48px;font-size:13.5px">@(T("For the supplier: name, signature and date"))</div></div>
+        </div>
+      </div></div>
+    </div></section>
+

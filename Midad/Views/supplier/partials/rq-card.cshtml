@@ -1,0 +1,29 @@
+
+@{
+    dynamic feat = ViewBag.feat;
+    Bid? myBid = Get<Bid?>("myBid");
+    SupplyRequest r = Get<SupplyRequest>("r");
+}
+
+@{ var first = r.Supplies.First(); }
+@{ var more = r.Supplies.Count() - 1; }
+          <article class="@Css(("rq", true), ("rq-feat", feat && ! myBid), ("rq-dim", (bool) myBid))">
+            @await Html.PartialAsync("~/Views/supplier/partials/thumb.cshtml", With(new Dictionary<string, object?> { ["s"] = first }))
+            <div class="rq-b">
+              <div class="rq-top"><span class="rq-no">@(r.Code)</span><span class="rq-hotel">@(r.Hotel.HotelName) · @(T(r.Hotel.City))</span>@if (Php.B(myBid)) {<text>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = "Submitted", ["label"] = "You have bid", ["icon"] = "bi-check2" }))</text>} else {<text>@await Html.PartialAsync("~/Views/Shared/_StatusPill.cshtml", Component(new Dictionary<string, object?> { ["shell"] = "supplier", ["value"] = r.Priority, ["priority"] = true }))</text>}</div>
+              <h3 class="rq-h">@(first?.SupplyName)@if (more > 0) {<text> <span>@(T(more == 1 ? "+ :n more item" : "+ :n more items", new Dictionary<string, object?> { ["n"] = more }))</span></text>}</h3>
+              <div class="rq-s">@(r.CardSummary())</div>
+              <div class="rq-f">
+                <span class="mt"><i class="bi bi-calendar3"></i>@(T("Needed by")) <b>@(r.RequiredDeliveryDate.TranslatedFormat("d M Y"))</b></span>
+                <span class="mt"><i class="bi bi-people"></i><b>@(r.Bids.Count)</b> @(r.Bids.Count == 1 ? T("bid") : T("bids"))</span>
+                @if (Php.B(myBid)) {<text>
+                <span class="mt"><i class="bi bi-tag"></i>@(T("Your bid")) <b>@(T("SAR")) @(Php.NumberFormat((decimal) myBid.BidPrice, 2))</b></span>
+                <span class="rq-cta"><a class="btn b-line" href="@(Route("supplier.bids.show", myBid))">@(T("View your bid"))</a></span>
+                </text>} else {<text>
+                @{ var left = r.DaysLeft(); }
+                <span class="mt"><i class="bi bi-clock"></i>@if (left == 0) {<text>@(T("Closes")) <b>@(T("today"))</b></text>} else {<text>@(T("Closes in")) <b>@(T(left == 1 ? ":n day" : ":n days", new Dictionary<string, object?> { ["n"] = left }))</b></text>}</span>
+                <span class="rq-cta"><a class="btn b-line" href="@(Route("supplier.requests.show", r))">@(T("View details"))</a><a class="@Css(("btn", true), ("b-olive", feat), ("b-soft", ! feat))" href="@(Route("supplier.bids.create", r))">@(T("Create bid"))</a></span>
+                </text>}
+              </div>
+            </div>
+          </article>

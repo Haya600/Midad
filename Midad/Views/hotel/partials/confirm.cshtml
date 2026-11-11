@@ -1,0 +1,42 @@
+
+@{
+    string? action = Get<string?>("action");
+    bool autoshow = Get<bool>("autoshow");
+    string? body = Get<string?>("body");
+    string? btnClass = Get<string?>("btnClass");
+    string? button = Get<string?>("button");
+    bool files = Get<bool>("files");
+    string? id = Get<string?>("id");
+    dynamic keep = ViewBag.keep;
+    string? method = Get<string?>("method");
+    string? note = Get<string?>("note");
+    dynamic rows = ViewBag.rows;
+    string? text = Get<string?>("text");
+    string? title = Get<string?>("title");
+}
+
+<div class="md-modal" id="@(id)" hidden role="dialog" aria-modal="true" aria-labelledby="@(id)T" @Html.Raw((autoshow ?? false) ? $" data-md-autoshow " : "")>
+      <div class="scrim">
+        <form class="mdl" method="POST" action="@(action)" @Html.Raw((files ?? false) ? $" enctype=\"multipart/form-data\" " : "")>
+          @Html.AntiForgeryToken()
+          @if ((method ?? "POST") != "POST") {<text> <input type="hidden" name="_method" value="None"> </text>}
+          <div class="mdl-h"><div class="mdl-t" id="@(id)T">@(T(title))</div></div>
+          <div class="mdl-b">
+            <p style="margin:0 0 16px;">@(T(text))</p>
+            @if (!Php.Empty(rows)) {<text>
+            <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:16px;">
+              @foreach (var ($k, $v], loop) in Php.Loop(rows)) {<text>
+              <div class="@Css(("d-flex justify-content-between gap-3", true), ("mb-2", ! loop.Last))" style="font-size:13px;"><span style="color:var(--muted)">@(T(k))</span><span class="num text-end" style="font-weight:500">@(v)</span></div>
+              </text>}
+            </div>
+            </text>}
+            @Html.Raw(body ?? "")
+            @if (!Php.Empty(note)) {<text><p style="margin:16px 0 0;font-size:13px;color:var(--muted);">@(T(note))</p></text>}
+          </div>
+          <div class="mdl-f">
+            <button class="btn btn-white" type="button" data-md-close>@(T(keep ?? "Cancel"))</button>
+            <button class="btn @(btnClass ?? "btn-primary")" type="submit">@(T(button))</button>
+          </div>
+        </form>
+      </div>
+</div>

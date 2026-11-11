@@ -1,0 +1,32 @@
+
+
+@{ Layout = "~/Views/Shared/_LayoutPublic.cshtml"; ViewData["nav"] = "how"; }
+@{ ViewData["title"] = "How it works"; }
+
+    <section class="sect s-cream" style="padding-bottom:40px"><div class="wrap">
+      <div class="ctr" style="margin-bottom:0"><span class="kicker">@(T("How it works"))</span>
+        <h2 style="font-size:44px">@(T("From request to signed contract in six steps"))</h2>
+        <p class="sect-sub">@(T("Every stage is recorded in the platform, so hotels and suppliers always see the same history."))</p></div>
+    </div></section>
+
+    <section class="sect s-cream" style="padding-top:26px"><div class="wrap">
+      <div class="row g-4">
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">1</span><h3>@(T("Hotel posts a request"))</h3><p>@(T("Product name, quantity, specifications and the required delivery date. The request becomes visible to every active supplier."))</p></div></div>
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">2</span><h3>@(T("Suppliers bid"))</h3><p>@(T("Each supplier submits a price and an estimated delivery time. A supplier may hold one active bid per request, and can update it any time before signing."))</p></div></div>
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">3</span><h3>@(T("Hotel compares"))</h3><p>@(T("Bids are ranked with the best at the top (price first, delivery time as the tie-breaker) alongside each supplier's star rating."))</p></div></div>
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">4</span><h3>@(T("Contract is signed"))</h3><p>@(T("Accepting a bid generates a contract. Both parties sign digitally in the platform, and the other bids are rejected automatically."))</p></div></div>
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">5</span><h3>@(T("Order and invoice"))</h3><p>@(T("A purchase order is created once both signatures are in. The invoice is generated automatically, with VAT at 15% shown separately."))</p></div></div>
+        <div class="col-12 col-sm-6 col-lg-4"><div class="step"><span class="step-n">6</span><h3>@(T("Pay and rate"))</h3><p>@(T("The hotel pays by credit or debit card, then rates the supplier with stars and a written comment once the order is complete."))</p></div></div>
+      </div>
+    </div></section>
+
+    <section class="sect s-white"><div class="wrap">
+      <div class="ctr"><span class="kicker">@(T("Why it works"))</span><h2>@(T("Built on transparency"))</h2></div>
+      <div class="row g-5">
+        <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-clock-history"></i></span><div><h3>@(T("Less time sourcing"))</h3><p>@(T("One request replaces a dozen phone calls. Suppliers come to you, with prices already on the table."))</p></div></div></div>
+        <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-cash-coin"></i></span><div><h3>@(T("Lower purchase costs"))</h3><p>@(T("Competition between suppliers drives the price down on every request you post."))</p></div></div></div>
+        <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-shield-lock"></i></span><div><h3>@(T("Secure and traceable"))</h3><p>@(T("Contracts are signed and stored in the platform. Every status change is recorded against the order."))</p></div></div></div>
+        <div class="col-12 col-md-6"><div class="ben"><span class="ben-i"><i class="bi bi-arrow-repeat"></i></span><div><h3>@(T("Everything in one place"))</h3><p>@(T("Requests, bids, contracts, orders, invoices and refunds live together, not across email threads."))</p></div></div></div>
+      </div>
+    </div></section>
+

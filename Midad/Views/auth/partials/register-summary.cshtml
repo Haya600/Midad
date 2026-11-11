@@ -1,0 +1,4 @@
+
+
+@{ var n = Php.Count(Php.ArrayUnique(Php.ArrayMap( (k) => Php.Explode(".", k)[0], Php.ArrayFilter(errors.Keys(),  (k) => ! Php.StrEndsWith(k, "_local"))))); }
+      <div class="al a-dang mb-4"><i class="bi bi-exclamation-triangle-fill"></i><div><div class="al-t">@(T("Your account could not be created"))</div><div class="al-b">@(MidadRequest.Attention(n, "try again. Everything else you entered has been kept."))</div></div></div>
